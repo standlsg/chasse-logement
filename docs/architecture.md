@@ -1,5 +1,10 @@
 # Architecture — chasse-logement
 
+> Schéma complet (actuel + modules IA proposés) : [docs/schema.md](schema.md) —
+> design des modules IA : [docs/ai-modules.md](ai-modules.md) (IA-1 signaux texte,
+> IA-2 dédup sémantique cross-sources) — build vs buy (agrégateurs type MoteurImmo) :
+> [docs/schema.md](schema.md) §build-vs-buy.
+
 ## 1. Vue d'ensemble
 
 ```
