@@ -1,0 +1,29 @@
+name: deploy
+
+# Déploiement automatique vers le VPS à chaque merge sur `prod`.
+# Secrets à configurer (Settings → Secrets and variables → Actions) :
+#   SSH_HOST, SSH_USER, SSH_KEY  (+ .env et config.yaml déjà présents sur le serveur)
+on:
+  push:
+    branches: [prod]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v4
+      - name: Déploiement SSH sur le VPS
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/chasse-logement
+            git fetch origin prod
+            git reset --hard origin/prod
+            docker compose -f deploy/docker-compose.prod.yml up -d --build

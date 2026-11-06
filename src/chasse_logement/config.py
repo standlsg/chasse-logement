@@ -101,6 +101,7 @@ class EnrichmentConfig(BaseModel):
 
 class AppConfig(BaseModel):
     database_path: str = "data/chasse-logement.db"
+    retention_days: int = 90  # purge auto des annonces/biens plus vieux (0 = jamais)
     http: HttpConfig = Field(default_factory=HttpConfig)
     sources: SourcesConfig = Field(default_factory=SourcesConfig)
     criteria: Criteria = Field(default_factory=Criteria)

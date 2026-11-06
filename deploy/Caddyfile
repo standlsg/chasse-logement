@@ -1,0 +1,8 @@
+# Reverse proxy HTTPS automatique (Let's Encrypt) + basic auth devant l'UI.
+# En local sans domaine : DOMAIN=localhost -> Caddy sert en HTTP interne sur :80.
+{$DOMAIN:localhost} {
+	basicauth /* {
+		{$BASIC_USER:admin} {$BASIC_HASH}
+	}
+	reverse_proxy app:8000
+}

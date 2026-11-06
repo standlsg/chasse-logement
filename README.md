@@ -11,6 +11,12 @@ email/Telegram.
 > Il respecte robots.txt, utilise un User-Agent honnête et une cadence lente.
 > Voir [docs/conformite.md](docs/conformite.md).
 
+## Hébergement
+
+- **Local (recommandé pour commencer, 0 €, < 1 Go de disque)** : voir [docs/local.md](docs/local.md) — `chasse-logement serve` puis http://127.0.0.1:8000.
+- **VPS / hébergeur dynamique (HTTPS + auth, ~3-6 €/mois)** : voir [deploy/README.md](deploy/README.md) (comparatif Hetzner/OVH/Scaleway/Koyeb/Clever Cloud/Oracle Free + déploiement Docker + Caddy + CI SSH).
+- GitHub Pages = statique uniquement : ne peut PAS exécuter l'interface (voir deploy/README.md).
+
 ## Workflow Git (branches prod / preprod)
 
 - **`prod`** : version stable, déployée en production.

@@ -2,6 +2,7 @@
 # Copier vers config.yaml, ajuster budget/critères, et mettre les secrets dans .env.
 
 database_path: data/chasse-logement.db
+retention_days: 90 # purge auto (espace disque) ; 0 = garde tout
 
 http:
   user_agent: "chasse-logement/0.1 (+https://github.com/standlsg/chasse-logement)"

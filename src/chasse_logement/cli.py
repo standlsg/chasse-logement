@@ -34,6 +34,10 @@ def main(argv: list[str] | None = None) -> int:
     disc_p = sub.add_parser("discover", help="détecte les flux RSS d'un site (robots.txt respecté)")
     disc_p.add_argument("url")
 
+    purge_p = sub.add_parser("purge", help="supprime annonces/biens plus vieux que N jours")
+    purge_p.add_argument("--config", default="config.yaml")
+    purge_p.add_argument("--days", type=int, default=None)
+
     args = parser.parse_args(argv)
 
     if args.command == "check-robots":
@@ -46,6 +50,18 @@ def main(argv: list[str] | None = None) -> int:
         from .discover import discover_rss
 
         print(json.dumps(discover_rss(args.url), indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "purge":
+        from .store import ListingStore
+
+        cfg = load_config(args.config)
+        days = args.days if args.days is not None else cfg.retention_days
+        store = ListingStore(cfg.database_path)
+        try:
+            print(json.dumps(store.purge(days), indent=2))
+        finally:
+            store.close()
         return 0
 
     cfg = load_config(args.config)

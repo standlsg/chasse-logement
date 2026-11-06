@@ -123,6 +123,8 @@ def run_once(
                     if isinstance(res.listing, Property):
                         store.save_property(res.listing, notified=True)
                 stats["notified"] = True
+        if cfg.retention_days > 0:
+            stats["purged"] = store.purge(cfg.retention_days)
         return stats
     finally:
         store.close()

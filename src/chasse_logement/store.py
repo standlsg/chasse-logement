@@ -187,6 +187,17 @@ class ListingStore:
         )
         self._conn.commit()
 
+    def purge(self, days: int) -> dict:
+        """Supprime annonces et biens vus il y a plus de `days` jours (libère du disque)."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        cur_listings = self._conn.execute("DELETE FROM listings WHERE first_seen_at < ?", (cutoff,))
+        cur_props = self._conn.execute("DELETE FROM properties WHERE last_seen_at < ?", (cutoff,))
+        self._conn.commit()
+        return {
+            "listings_deleted": cur_listings.rowcount,
+            "properties_deleted": cur_props.rowcount,
+        }
+
     # ---------- stats ----------
 
     def stats(self) -> dict:

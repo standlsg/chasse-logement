@@ -2,6 +2,7 @@
 # Les secrets (mots de passe, tokens) vont dans .env (voir .env.example), PAS ici.
 
 database_path: data/chasse-logement.db
+retention_days: 90 # purge auto des annonces/biens plus vieux (0 = jamais) — utile si disque limité
 
 http:
   # User-Agent honnête : jamais de contournement d'anti-bot.
