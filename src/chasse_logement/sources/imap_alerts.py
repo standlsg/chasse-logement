@@ -31,6 +31,9 @@ PORTAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("pap", re.compile(r"\bpap\b|particulier.?a.?particulier", re.IGNORECASE)),
     ("bienici", re.compile(r"bien'?ici", re.IGNORECASE)),
     ("logic-immo", re.compile(r"logic.?immo", re.IGNORECASE)),
+    ("gensdeconfiance", re.compile(r"gens.?de.?confiance", re.IGNORECASE)),
+    ("appartager", re.compile(r"appartager", re.IGNORECASE)),
+    ("studapart", re.compile(r"studapart", re.IGNORECASE)),
 ]
 
 

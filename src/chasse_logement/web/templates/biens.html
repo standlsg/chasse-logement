@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Biens — chasse-logement{% endblock %}
+{% block content %}
+<h1>Biens ({{ total }})</h1>
+<div class="card">
+  <form class="filterbar" method="get" action="/biens">
+    <div><label>Recherche texte</label><input type="text" name="q" value="{{ filters.q }}"></div>
+    <div><label>Source</label>
+      <select name="source">
+        <option value="">Toutes</option>
+        {% for s in source_ids %}<option value="{{ s }}" {% if filters.source == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      </select>
+    </div>
+    <div><label>Code postal</label><input type="text" name="postcode" value="{{ filters.postcode }}"></div>
+    <div><label>Prix min €</label><input type="text" name="prix_min" value="{{ filters.prix_min }}"></div>
+    <div><label>Prix max €</label><input type="text" name="prix_max" value="{{ filters.prix_max }}"></div>
+    <div><label>Score min</label><input type="text" name="score_min" value="{{ filters.score_min }}"></div>
+    <div><label>&nbsp;</label><span class="checks"><label><input type="checkbox" name="flags_only" value="1" {% if filters.flags_only %}checked{% endif %}> ⚠ red flags seulement</label></span></div>
+    <div><button type="submit">Filtrer</button></div>
+  </form>
+</div>
+<div class="card">
+  {% if rows %}
+  <table>
+    <tr>
+      <th><a class="link" href="/biens?{{ qs }}&sort=title&order={% if sort == 'title' and order == 'asc' %}desc{% else %}asc{% endif %}">Bien</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=price&order={% if sort == 'price' and order == 'asc' %}desc{% else %}asc{% endif %}">Prix</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=surface_m2&order={% if sort == 'surface_m2' and order == 'asc' %}desc{% else %}asc{% endif %}">m²</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=rooms&order={% if sort == 'rooms' and order == 'asc' %}desc{% else %}asc{% endif %}">Pièces</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=postcode&order={% if sort == 'postcode' and order == 'asc' %}desc{% else %}asc{% endif %}">CP</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=score&order={% if sort == 'score' and order == 'asc' %}desc{% else %}asc{% endif %}">Score</a></th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=nb_sources&order={% if sort == 'nb_sources' and order == 'asc' %}desc{% else %}asc{% endif %}">Sources</a></th>
+      <th>⚠</th>
+      <th><a class="link" href="/biens?{{ qs }}&sort=last_seen_at&order={% if sort == 'last_seen_at' and order == 'asc' %}desc{% else %}asc{% endif %}">Vu le</a></th>
+    </tr>
+    {% for row in rows %}
+    {% set p = row.prop %}
+    <tr class="prop">
+      <td>{{ p.title or '(sans titre)' }}</td>
+      <td>{{ (p.total_price|int ~ ' €') if p.total_price else 'n.c.' }}</td>
+      <td>{{ (p.surface_m2|int ~ ' m²') if p.surface_m2 else 'n.c.' }}</td>
+      <td>{{ p.rooms if p.rooms is not none else 'n.c.' }}</td>
+      <td>{{ p.postcode or '' }}</td>
+      <td>{{ p.score|int }}/100</td>
+      <td>{{ p.sources|length }}</td>
+      <td>{% if p.red_flags %}⚠️{% endif %}</td>
+      <td class="muted">{{ p.last_seen_at.strftime('%d/%m %H:%M') }}</td>
+    </tr>
+    <tr class="detail" style="display:none">
+      <td colspan="9">
+        <div class="box">
+          <b>Liens vers chaque source</b>
+          <ul>
+            {% for s in p.sources %}
+            <li><a class="link" href="{{ s.url }}">{{ s.source_id }}</a> — {{ s.title }}
+              {% if s.price %}({{ s.price|int }} €{% if s.surface_m2 %}, {{ s.surface_m2|int }} m²{% endif %}{% if s.rooms %}, {{ s.rooms }} pièces{% endif %}){% endif %}
+              — vu le {{ s.first_seen_at.strftime('%d/%m/%Y') }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% if p.inconsistencies %}
+        <div class="warn"><b>⚠ Incohérences entre sources :</b>
+          <ul>{% for i in p.inconsistencies %}<li>{{ i }}</li>{% endfor %}</ul>
+        </div>
+        {% endif %}
+        {% if p.red_flags %}
+        <div class="danger"><b>🚩 À vérifier :</b>
+          <ul>{% for f in p.red_flags %}<li>{{ f }}</li>{% endfor %}</ul>
+        </div>
+        {% else %}
+        <div class="ok">✅ Aucun red flag détecté.</div>
+        {% endif %}
+        <div class="box"><b>Adresse estimée</b> :
+          {% if p.address_label %}
+            {{ p.address_label }} <span class="muted">(précision : {{ p.address_precision }}, score géocodage)</span>
+            — <a class="link" href="https://www.openstreetmap.org/?mlat={{ p.latitude }}&mlon={{ p.longitude }}#map=17/{{ p.latitude }}/{{ p.longitude }}">carte OSM</a>
+          {% else %}
+            <span class="muted">non géocodé (l'enrichissement géocodage est actif aux prochaines tournées)</span>
+          {% endif %}
+        </div>
+        {% if row.poi %}
+        <div class="box"><b>Écoles et commerces à proximité</b>
+          {% for cat, items in row.poi.items() %}
+            {% if items %}
+            <p><b>{{ cat }} ({{ items|length }})</b> :
+              {% for it in items %}{{ it.name }} ({{ it.distance_m }} m){% if not loop.last %}, {% endif %}{% endfor %}
+            </p>
+            {% endif %}
+          {% endfor %}
+          <p class="muted">données OpenStreetMap © contributeurs OSM (ODbL)</p>
+        </div>
+        {% endif %}
+        {% if row.route and commute_label %}
+        <div class="box"><b>🚗 Trajet hors trafic → {{ commute_label }}</b> : {{ row.route.label }} (OSRM free-flow)</div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if total > rows|length %}<p class="muted">{{ rows|length }} biens affichés sur {{ total }} (filtres actifs).</p>{% endif %}
+  {% else %}
+  <p class="muted">Aucun bien. Lance une tournée depuis le tableau de bord ou ajuste les filtres.</p>
+  {% endif %}
+</div>
+<script>
+document.querySelectorAll('tr.prop').forEach(function (tr) {
+  tr.addEventListener('click', function () {
+    var d = tr.nextElementSibling;
+    if (d && d.classList.contains('detail')) {
+      d.style.display = d.style.display === 'table-row' ? 'none' : 'table-row';
+    }
+  });
+});
+</script>
+{% endblock %}

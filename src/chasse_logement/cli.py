@@ -31,12 +31,21 @@ def main(argv: list[str] | None = None) -> int:
     serve_p.add_argument("--host", default="127.0.0.1")
     serve_p.add_argument("--port", type=int, default=8000)
 
+    disc_p = sub.add_parser("discover", help="détecte les flux RSS d'un site (robots.txt respecté)")
+    disc_p.add_argument("url")
+
     args = parser.parse_args(argv)
 
     if args.command == "check-robots":
         from .robots import robots_summary
 
         print(json.dumps(robots_summary(args.url, args.user_agent), indent=2))
+        return 0
+
+    if args.command == "discover":
+        from .discover import discover_rss
+
+        print(json.dumps(discover_rss(args.url), indent=2, ensure_ascii=False))
         return 0
 
     cfg = load_config(args.config)

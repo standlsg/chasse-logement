@@ -35,9 +35,17 @@ pip install -e .[dev]
 ## Configuration
 
 ```bash
+# Option régionale prête à l'emploi (Aix-en-Provence / Marseille, 13) :
+cp regions/aix-marseille.example.yaml config.yaml
+# ou config générique :
 cp config.example.yaml config.yaml   # édité aussi via l'UI web (gitigné : contient tes critères perso)
 cp .env.example .env                 # secrets uniquement (CL_IMAP_PASSWORD, CL_SMTP_PASSWORD, ...)
 ```
+
+Dans l'UI `/parametres`, le **catalogue régional** applique en un clic les portails
+recommandés (leboncoin, seloger, pap, bienici, logic-immo, gensdeconfiance, appartager,
+studapart) et les codes postaux de la métropole Aix-Marseille. Pour détecter les flux RSS
+d'une agence locale : `chasse-logement discover https://www.agence-locale.fr`.
 
 Sur chaque portail : sauvegarde ta recherche avec les bons critères, puis active
 l'alerte **email** vers la boîte dédiée.

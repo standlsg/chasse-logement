@@ -68,6 +68,17 @@ notify:
     bot_token: "" # surchargé par CL_TELEGRAM_TOKEN dans .env
     chat_id: ""
 
+enrichment:
+  geocode: true # adresse estimée via GéoPlateforme (IGN, gratuit, sans clé)
+  poi: true # écoles/commerces/transports à proximité via OSM (Overpass)
+  poi_radius_m: 800
+
+commute:
+  enabled: false
+  destination_label: "Salesforce Marseille"
+  # adresse postale exacte de destination (géocodée ; OSRM donne le temps hors trafic)
+  destination_address: ""
+
 schedule:
   hour: 8
   minute: 0

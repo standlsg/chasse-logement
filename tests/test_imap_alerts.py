@@ -5,6 +5,9 @@ from chasse_logement.sources.imap_alerts import detect_portal, parse_alert_email
 def test_detect_portal():
     assert detect_portal("alertes@leboncoin.fr", "Nouvelle annonce") == "leboncoin"
     assert detect_portal("noreply@seloger.com", "x") == "seloger"
+    assert detect_portal("noreply@gensdeconfiance.com", "x") == "gensdeconfiance"
+    assert detect_portal("noreply@appartager.com", "x") == "appartager"
+    assert detect_portal("alerts@studapart.com", "x") == "studapart"
     assert detect_portal("contact@agence-x.fr", "x") == "portail"
 
 

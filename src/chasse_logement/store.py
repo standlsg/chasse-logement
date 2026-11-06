@@ -5,7 +5,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from .models import Listing
+from .models import Listing, Property
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS listings (
@@ -19,11 +19,33 @@ CREATE TABLE IF NOT EXISTS listings (
     data          TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_listings_source ON listings(source_id);
+CREATE TABLE IF NOT EXISTS properties (
+    prop_id       TEXT PRIMARY KEY,
+    notified      INTEGER NOT NULL DEFAULT 0,
+    score         REAL,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at  TEXT NOT NULL,
+    data          TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS geocodes (
+    query  TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS poi_cache (
+    prop_id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS route_cache (
+    prop_id TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);
 """
+
+CACHE_KEY_COL = {"geocodes": "query", "poi_cache": "prop_id", "route_cache": "prop_id"}
 
 
 class ListingStore:
-    """Stockage SQLite des annonces vues (dédup par dedup_key)."""
+    """Stockage SQLite : annonces (par source), biens fusionnés (properties) et caches."""
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path)
@@ -36,6 +58,8 @@ class ListingStore:
                 self._conn.execute(f"ALTER TABLE listings ADD COLUMN {col} {decl}")
             except sqlite3.OperationalError:
                 pass  # colonne déjà présente (base existante)
+
+    # ---------- annonces (Listing, par source) ----------
 
     def save(self, listing: Listing) -> bool:
         """Insère ou met à jour. Retourne True si l'annonce est nouvelle."""
@@ -75,6 +99,17 @@ class ListingStore:
         )
         self._conn.commit()
 
+    def all_listings(self) -> list[Listing]:
+        rows = self._conn.execute("SELECT data FROM listings").fetchall()
+        return [Listing.model_validate(json.loads(r["data"])) for r in rows]
+
+    def recent_pool(self, days: int = 30) -> list[Listing]:
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        rows = self._conn.execute(
+            "SELECT data FROM listings WHERE first_seen_at >= ?", (cutoff,)
+        ).fetchall()
+        return [Listing.model_validate(json.loads(r["data"])) for r in rows]
+
     def recent_matches(self, limit: int = 30) -> list[dict]:
         rows = self._conn.execute(
             "SELECT data, score, reasons, first_seen_at FROM listings"
@@ -91,12 +126,68 @@ class ListingStore:
             for r in rows
         ]
 
-    def recent_pool(self, days: int = 30) -> list[Listing]:
-        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
-        rows = self._conn.execute(
-            "SELECT data FROM listings WHERE first_seen_at >= ?", (cutoff,)
-        ).fetchall()
-        return [Listing.model_validate(json.loads(r["data"])) for r in rows]
+    # ---------- biens fusionnés (Property) ----------
+
+    def save_property(self, prop: Property, notified: bool | None = None) -> None:
+        row = self._conn.execute(
+            "SELECT prop_id, notified FROM properties WHERE prop_id = ?", (prop.prop_id,)
+        ).fetchone()
+        prop.last_seen_at = datetime.now(UTC)
+        payload = prop.model_dump_json()
+        if row is None:
+            self._conn.execute(
+                "INSERT INTO properties"
+                " (prop_id, notified, score, first_seen_at, last_seen_at, data)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
+                (
+                    prop.prop_id,
+                    1 if notified else 0,
+                    prop.score,
+                    prop.first_seen_at.isoformat(),
+                    prop.last_seen_at.isoformat(),
+                    payload,
+                ),
+            )
+        else:
+            new_notified = row["notified"] if notified is None else (1 if notified else 0)
+            self._conn.execute(
+                "UPDATE properties SET notified = ?, score = ?, last_seen_at = ?, data = ?"
+                " WHERE prop_id = ?",
+                (new_notified, prop.score, prop.last_seen_at.isoformat(), payload, prop.prop_id),
+            )
+        self._conn.commit()
+
+    def get_property(self, prop_id: str) -> Property | None:
+        row = self._conn.execute(
+            "SELECT data FROM properties WHERE prop_id = ?", (prop_id,)
+        ).fetchone()
+        return Property.model_validate(json.loads(row["data"])) if row else None
+
+    def get_properties(self, notified_only: bool = False) -> list[Property]:
+        sql = "SELECT data FROM properties"
+        if notified_only:
+            sql += " WHERE notified = 1"
+        sql += " ORDER BY last_seen_at DESC"
+        rows = self._conn.execute(sql).fetchall()
+        return [Property.model_validate(json.loads(r["data"])) for r in rows]
+
+    # ---------- caches (géocodage, POI, itinéraires) ----------
+
+    def get_cached(self, table: str, key: str) -> str | None:
+        col = CACHE_KEY_COL[table]
+        row = self._conn.execute(f"SELECT payload FROM {table} WHERE {col} = ?", (key,)).fetchone()
+        return row["payload"] if row else None
+
+    def set_cached(self, table: str, key: str, payload: str) -> None:
+        col = CACHE_KEY_COL[table]
+        self._conn.execute(
+            f"INSERT INTO {table} ({col}, payload) VALUES (?, ?)"
+            f" ON CONFLICT({col}) DO UPDATE SET payload = excluded.payload",
+            (key, payload),
+        )
+        self._conn.commit()
+
+    # ---------- stats ----------
 
     def stats(self) -> dict:
         total = self.count()
@@ -105,7 +196,8 @@ class ListingStore:
                 "n"
             ]
         )
-        return {"total": total, "notified": notified}
+        props = int(self._conn.execute("SELECT COUNT(*) AS n FROM properties").fetchone()["n"])
+        return {"total": total, "notified": notified, "properties": props}
 
     def count(self) -> int:
         return int(self._conn.execute("SELECT COUNT(*) AS n FROM listings").fetchone()["n"])

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import json
-
 from .config import AppConfig
+from .geocoding import Geocoder, address_query
 from .http import PoliteClient
 from .matching import MatchResult, evaluate
-from .models import Listing
+from .merge import build_property, cluster
+from .models import Listing, Property
 from .notify import Notifier, build_notifier
+from .redflags import red_flags
 from .sources.base import Source
 from .sources.imap_alerts import ImapAlertsSource
 from .sources.rss import RssSource
@@ -35,12 +36,18 @@ def build_sources(cfg: AppConfig, client: PoliteClient) -> list[Source]:
     return sources
 
 
+def rebuild_properties(store: ListingStore) -> list[Property]:
+    """Reclusterise toutes les annonces en biens (Property) fusionnés cross-sources."""
+    return [build_property(group) for group in cluster(store.all_listings())]
+
+
 def run_once(
     cfg: AppConfig,
     notifier: Notifier | None = None,
     client: PoliteClient | None = None,
 ) -> dict:
-    """Une tournée : collecte → dédup → matching → notification. Retourne des stats."""
+    """Une tournée : collecte → dédup → fusion en biens → matching → notification
+    (uniquement les nouveaux biens) → stats."""
     own_client = client is None
     client = client or PoliteClient(
         user_agent=cfg.http.user_agent,
@@ -57,6 +64,8 @@ def run_once(
             "sources": len(sources),
             "collected": 0,
             "new": 0,
+            "properties": 0,
+            "new_properties": 0,
             "matches": 0,
             "notified": False,
         }
@@ -75,28 +84,45 @@ def run_once(
                         fresh.append(listing)
             except Exception as exc:  # noqa: BLE001 - une source en panne ne bloque pas la tournée
                 stats.setdefault("source_errors", {})[src.name] = str(exc)
-        pool = store.recent_pool(days=30) + fresh
-        results: list[MatchResult] = []
-        for listing in fresh:
-            res = evaluate(listing, cfg.criteria, pool)
-            if res is not None:
-                results.append(res)
-        results.sort(key=lambda r: r.score, reverse=True)
-        stats["matches"] = len(results)
-        if results and notifier is not None:
-            subject = f"[chasse-logement] {len(results)} nouvelle(s) annonce(s)"
-            if cfg.notify.mode == "instant":
-                for res in results:
-                    notifier.send_digest(f"[chasse-logement] annonce {res.score:.0f}/100", [res])
-            else:
-                notifier.send_digest(subject, results)
-            store.mark_notified(
-                [
-                    (r.listing.dedup_key, r.score, json.dumps(r.reasons, ensure_ascii=False))
-                    for r in results
-                ]
-            )
-            stats["notified"] = True
+        if fresh:
+            props = rebuild_properties(store)
+            stats["properties"] = len(props)
+            pool = store.recent_pool(days=30)
+            pool_ppm = [lst.price_per_m2 for lst in pool if lst.price_per_m2]
+            geocoder = Geocoder(cache=store) if cfg.enrichment.geocode else None
+            new_matches: list[MatchResult] = []
+            for prop in props:
+                existing = store.get_property(prop.prop_id)
+                is_new = existing is None
+                if is_new:
+                    stats["new_properties"] += 1
+                prop.red_flags = red_flags(prop, pool_ppm)
+                if is_new and geocoder is not None and prop.latitude is None:
+                    geo = geocoder.geocode(address_query(prop))
+                    if geo is not None:
+                        prop.latitude = geo.latitude
+                        prop.longitude = geo.longitude
+                        prop.address_label = geo.label
+                        prop.address_precision = geo.precision
+                if is_new:
+                    res = evaluate(prop, cfg.criteria, pool)
+                    if res is not None:
+                        prop.score = res.score
+                        new_matches.append(res)
+                store.save_property(prop, notified=bool(existing.notified) if existing else False)
+            new_matches.sort(key=lambda r: r.score, reverse=True)
+            stats["matches"] = len(new_matches)
+            if new_matches and notifier is not None:
+                subject = f"[chasse-logement] {len(new_matches)} nouveau(x) bien(s)"
+                if cfg.notify.mode == "instant":
+                    for res in new_matches:
+                        notifier.send_digest(f"[chasse-logement] bien {res.score:.0f}/100", [res])
+                else:
+                    notifier.send_digest(subject, new_matches)
+                for res in new_matches:
+                    if isinstance(res.listing, Property):
+                        store.save_property(res.listing, notified=True)
+                stats["notified"] = True
         return stats
     finally:
         store.close()

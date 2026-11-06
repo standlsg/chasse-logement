@@ -74,3 +74,37 @@ Déployer l'**option D** en MVP (IMAP des alertes natives + RSS agences + matchi
 notification quotidienne), avec Jinka en parallèle côté téléphone, et évaluer l'option C
 en V1 si la couverture des agences reste insuffisante. Voir `architecture.md` pour le
 détail et `conformite.md` pour les règles impératives.
+
+## 6. Focus Aix-en-Provence / Marseille (13) — sources retenues
+
+Voir `src/chasse_logement/sources/catalog.py` (catalogue régional appliquable en un clic
+dans l'UI) et `regions/aix-marseille.example.yaml` (config prête à l'emploi).
+
+**Portails avec alerte email** (boîte dédiée, lus en IMAP) : Leboncoin, SeLoger, PAP,
+Bien'ici, Logic-Immo, **Gens de Confiance** et **Appartager** (colocation, très actifs à
+Aix), **Studapart** (partenaire Aix-Marseille Université, logements vérifiés).
+
+**Agences locales** (leurs annonces passent majoritairement par les portails ci-dessus ;
+flux RSS propres à détecter avec `chasse-logement discover <site>`) : Orpi Marseille
+(50+ points de vente) et Orpi Aix, Foncia Marseille Prado / Aix, Century 21 Aix
+(marché technopôle Arbois), Laforêt Marseille, Stéphane Plaza Marseille 6e, SAFTI,
+plus indépendants : Immobilière Pujol, Homki, A La Lucarne, Guis Immobilier,
+La Marseillaise d'Immobilier, Mychezmoi, CRYZA (Les Milles), SGL Immo, Immobilière du
+Palais (Aix), La Comtesse, Agence MJB (Aix). Annuaires de référence : FNAIM Aix
+(51 agences), SeLoger Aix (178 pros), Monbien Aix (99 agences), aix.fr.
+
+**Dispositifs publics/étudiants à suivre manuellement** (compte requis, pas d'API) :
+CROUS Aix-Marseille (26 résidences, ~220-380 €/mois, DSE), Lokaviz (gratuit, compte INE),
+Action Logement (salariés du privé éligibles : logement-actionlogement.fr et AL'in),
+In'li (logements à prix maîtrisé 13), demande-logement-social.gouv.fr (HLM).
+
+**Données marché pour le scoring** : Carte des loyers ANIL par commune (data.gouv.fr),
+Observatoires locaux des loyers (Aix-Marseille Provence Métropole).
+
+**Géographie** : codes postaux de la Métropole Aix-Marseille-Provence (13), extensibles
+via `geo.api.gouv.fr` ; géocodage via GéoPlateforme (IGN).
+
+**Trajet quotidien** : destination « Salesforce Marseille » (bureau de The Babel
+Community, entre La Joliette et le Vieux-Port) — adresse exacte à renseigner dans
+`commute.destination_address` ; durée « hors trafic » calculée via OSRM (free-flow).
+

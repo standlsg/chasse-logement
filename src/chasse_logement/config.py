@@ -87,6 +87,18 @@ class ScheduleConfig(BaseModel):
     interval_hours: int = 24
 
 
+class CommuteConfig(BaseModel):
+    enabled: bool = False
+    destination_label: str = "Salesforce Marseille"
+    destination_address: str = ""  # ex. "12 rue de la République, 13002 Marseille"
+
+
+class EnrichmentConfig(BaseModel):
+    geocode: bool = True
+    poi: bool = True
+    poi_radius_m: int = 800
+
+
 class AppConfig(BaseModel):
     database_path: str = "data/chasse-logement.db"
     http: HttpConfig = Field(default_factory=HttpConfig)
@@ -94,6 +106,8 @@ class AppConfig(BaseModel):
     criteria: Criteria = Field(default_factory=Criteria)
     notify: NotifyConfig = Field(default_factory=NotifyConfig)
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
+    commute: CommuteConfig = Field(default_factory=CommuteConfig)
+    enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
 
 
 class Secrets(BaseSettings):

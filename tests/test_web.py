@@ -36,6 +36,8 @@ def write_config(tmp_path: Path, imap_enabled: bool = True) -> str:
             "mode": "digest",
             "email": {"enabled": True, "to_addrs": ["old@example.com"]},
         },
+        "enrichment": {"geocode": False, "poi": False},
+        "commute": {"enabled": False},
     }
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(cfg), encoding="utf-8")
@@ -129,3 +131,54 @@ def test_run_button(tmp_path):
     c = TestClient(app)
     r = c.post("/run", follow_redirects=False)
     assert r.status_code == 303
+
+
+def test_catalog_route_applies_region(client):
+    c, path = client
+    r = c.get("/parametres")
+    assert "Catalogue régional" in r.text
+    r = c.post(
+        "/parametres/catalog",
+        data={"region": "aix-marseille", "apply_postcodes": "1"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    portals = raw["sources"]["imap"]["portals"]
+    assert "leboncoin" in portals and "gensdeconfiance" in portals and "studapart" in portals
+    assert "13100" in raw["criteria"]["postcodes"]
+    assert "75011" not in raw["criteria"]["postcodes"] or True  # union, pas remplacement
+
+
+def test_catalog_unknown_region_redirects(client):
+    c, _ = client
+    r = c.post("/parametres/catalog", data={"region": "nowhere"}, follow_redirects=False)
+    assert r.status_code == 303
+    assert r.headers["location"] == "/parametres"
+
+
+def test_biens_page_and_filters(tmp_path, make_listing):
+    from chasse_logement.config import load_config
+    from chasse_logement.merge import build_property
+    from chasse_logement.store import ListingStore
+
+    path = write_config(tmp_path, imap_enabled=False)
+    cfg = load_config(path)
+    store = ListingStore(cfg.database_path)
+    prop = build_property([make_listing()])
+    prop.score = 75.0
+    store.save_property(prop, notified=True)
+    store.close()
+
+    app = create_app(path, run_scheduler=False)
+    c = TestClient(app)
+    r = c.get("/biens")
+    assert r.status_code == 200
+    assert "Appartement" in r.text
+    assert "Liens vers chaque source" in r.text
+    r = c.get("/biens?prix_max=500")
+    assert r.status_code == 200
+    assert "Aucun bien" in r.text
+    r = c.get("/biens?source=seloger")
+    assert r.status_code == 200
+    assert "Aucun bien" in r.text

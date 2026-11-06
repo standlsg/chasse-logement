@@ -56,9 +56,19 @@
   fraîcheur ≤ 20 + prix/m² vs pool ≤ 30) → `MatchResult`.
 - `notify.py` : `EmailNotifier` (SMTP, digest HTML+texte) et `TelegramNotifier` (Bot API).
 - `pipeline.py` : `run_once()` = collect → save/dédup → evaluate → notify → stats JSON.
-- `web/` : UI FastAPI — tableau de bord (`/`) et paramétrage (`/parametres`) : critères,
-  sources cochables (portails IMAP + flux RSS ajout/suppression), destinataires email,
-  mode digest/instantané. L'UI écrit `config.yaml` sans jamais toucher aux secrets.
+- `web/` : UI FastAPI — tableau de bord (`/`), onglet **Biens** (`/biens`, liste triable
+  et filtrable, un bien = une ligne avec liens vers chaque source, incohérences
+  surlignées, encart « à vérifier », adresse estimée, écoles/commerces, trajet hors
+  trafic) et paramétrage (`/parametres`) : critères, sources cochables (portails IMAP +
+  flux RSS ajout/suppression + **catalogue régional** appliquable en un clic),
+  destinataires email, mode digest/instantané. L'UI écrit `config.yaml` sans jamais
+  toucher aux secrets.
+- `merge.py` : fusion cross-sources des annonces en `Property` (même bien = une ligne).
+- `redflags.py` : encart « à vérifier » (incohérences entre sources, prix/m² anormal,
+  formulations d'arnaque).
+- `geocoding.py` (GéoPlateforme/IGN), `poi.py` (Overpass/OSM), `routing.py` (OSRM
+  free-flow = « hors trafic »), `discover.py` + `sources/catalog.py` (détection de flux
+  RSS d'agences + catalogue régional Aix-Marseille).
 - `cli.py` : `chasse-logement run --config config.yaml` (cron), `daemon` (boucle),
   `serve` (UI web + planificateur en arrière-plan), `check-robots`.
 - `config.py` : YAML non secret (`config.yaml`) + secrets en env (`CL_*`, `.env`).

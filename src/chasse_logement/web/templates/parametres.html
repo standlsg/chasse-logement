@@ -90,6 +90,40 @@
     <div><label>URL</label><input type="text" name="url" placeholder="https://www.agence.fr/annonces/rss.xml" required></div>
     <div><button type="submit">➕ Ajouter</button></div>
   </form>
-  <p class="muted">Vérifie que le site publie bien un flux RSS public (et que robots.txt l'autorise : <code>chasse-logement check-robots &lt;url&gt;</code>).</p>
+  <p class="muted">Vérifie que le site publie bien un flux RSS public (et que robots.txt l'autorise : <code>chasse-logement check-robots &lt;url&gt;</code>). Pour détecter automatiquement les flux d'une agence : <code>chasse-logement discover &lt;site-agence&gt;</code>.</p>
+</div>
+
+<div class="card">
+  <h2>Catalogue régional</h2>
+  <form method="post" action="/parametres/catalog">
+    <div class="row">
+      <div><label>Région cible</label>
+        <select name="region">
+          {% for key, reg in catalogs.items() %}
+          <option value="{{ key }}">{{ reg.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div><label>&nbsp;</label>
+        <span class="checks"><label><input type="checkbox" name="apply_postcodes" value="1" checked> ajouter les codes postaux de la région aux critères</label></span>
+      </div>
+    </div>
+    <button type="submit" class="secondary">📦 Appliquer le catalogue (portails + agences + CP)</button>
+  </form>
+  {% for key, reg in catalogs.items() %}
+  <details style="margin-top:.8rem">
+    <summary><b>{{ reg.label }}</b> — sources référencées</summary>
+    <p class="muted">Portails à cocher ci-dessus (activer l'alerte email de ta recherche sauvegardée vers la boîte dédiée) : {{ reg.portals|join(', ') }}</p>
+    <p class="muted">Agences locales :</p>
+    <ul>
+      {% for a in reg.agencies %}<li><a class="link" href="{{ a.site }}">{{ a.name }}</a></li>{% endfor %}
+    </ul>
+    <p class="muted">{{ reg.agencies_note }}</p>
+    <p class="muted">Dispositifs à suivre manuellement (compte requis, pas d'API publique) :</p>
+    <ul>
+      {% for m in reg.manual %}<li><a class="link" href="{{ m.url }}">{{ m.name }}</a> — {{ m.why }}</li>{% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
 </div>
 {% endblock %}
