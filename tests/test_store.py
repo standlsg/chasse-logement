@@ -15,5 +15,8 @@ def test_recent_pool_and_notified(tmp_path, make_listing):
     store.save(listing)
     pool = store.recent_pool(days=30)
     assert len(pool) == 1 and pool[0].external_id == "1"
-    store.mark_notified([listing.dedup_key])
+    store.mark_notified([(listing.dedup_key, 80.0, "[]")])
+    assert store.stats() == {"total": 1, "notified": 1}
+    matches = store.recent_matches()
+    assert matches[0]["score"] == 80.0
     store.close()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from .config import AppConfig
 from .http import PoliteClient
 from .matching import MatchResult, evaluate
@@ -23,9 +25,12 @@ def build_sources(cfg: AppConfig, client: PoliteClient) -> list[Source]:
                 password=imap.password,
                 mailbox=imap.mailbox,
                 since_days=imap.since_days,
+                portals=imap.portals,
             )
         )
     for feed in cfg.sources.rss_feeds:
+        if not feed.enabled:
+            continue
         sources.append(RssSource(feed.name, feed.url, client=client))
     return sources
 
@@ -58,15 +63,18 @@ def run_once(
         fresh: list[Listing] = []
         seen_keys: set[str] = set()
         for src in sources:
-            for listing in src.collect():
-                stats["collected"] += 1
-                key = listing.dedup_key
-                if key in seen_keys:
-                    continue
-                seen_keys.add(key)
-                if store.save(listing):
-                    stats["new"] += 1
-                    fresh.append(listing)
+            try:
+                for listing in src.collect():
+                    stats["collected"] += 1
+                    key = listing.dedup_key
+                    if key in seen_keys:
+                        continue
+                    seen_keys.add(key)
+                    if store.save(listing):
+                        stats["new"] += 1
+                        fresh.append(listing)
+            except Exception as exc:  # noqa: BLE001 - une source en panne ne bloque pas la tournée
+                stats.setdefault("source_errors", {})[src.name] = str(exc)
         pool = store.recent_pool(days=30) + fresh
         results: list[MatchResult] = []
         for listing in fresh:
@@ -82,7 +90,12 @@ def run_once(
                     notifier.send_digest(f"[chasse-logement] annonce {res.score:.0f}/100", [res])
             else:
                 notifier.send_digest(subject, results)
-            store.mark_notified([r.listing.dedup_key for r in results])
+            store.mark_notified(
+                [
+                    (r.listing.dedup_key, r.score, json.dumps(r.reasons, ensure_ascii=False))
+                    for r in results
+                ]
+            )
             stats["notified"] = True
         return stats
     finally:

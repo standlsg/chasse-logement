@@ -23,11 +23,13 @@ class ImapConfig(BaseModel):
     password: str = ""
     mailbox: str = "INBOX"
     since_days: int = 2
+    portals: list[str] = Field(default_factory=list)  # vide = tous les portails
 
 
 class RssFeedConfig(BaseModel):
     name: str
     url: str
+    enabled: bool = True
 
 
 class ApiAggregatorConfig(BaseModel):

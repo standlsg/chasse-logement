@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — chasse-logement{% endblock %}
+{% block content %}
+<div class="card stats">
+  <div class="stat"><b>{{ stats.total }}</b>annonces vues</div>
+  <div class="stat"><b>{{ stats.notified }}</b>notifiées</div>
+  <div class="stat"><b>{{ sources.rss_feeds|length }}</b>flux RSS</div>
+  <div class="stat"><b>{{ criteria.budget_max|int }} €</b>budget max</div>
+</div>
+<div class="card">
+  <h2>Dernières annonces correspondant à tes critères</h2>
+  {% if matches %}
+  <table>
+    <tr><th>Annonce</th><th>Prix</th><th>Surface</th><th>Pièces</th><th>Zone</th><th>Score</th><th>Source</th><th>Vue le</th></tr>
+    {% for m in matches %}
+    <tr>
+      <td>{% if m.listing.url %}<a class="link" href="{{ m.listing.url }}">{{ m.listing.title or '(sans titre)' }}</a>{% else %}{{ m.listing.title }}{% endif %}</td>
+      <td>{{ (m.listing.total_price|int ~ ' €') if m.listing.total_price else 'n.c.' }}</td>
+      <td>{{ (m.listing.surface_m2|int ~ ' m²') if m.listing.surface_m2 else 'n.c.' }}</td>
+      <td>{{ m.listing.rooms if m.listing.rooms is not none else 'n.c.' }}</td>
+      <td>{{ m.listing.postcode or m.listing.city or 'n.c.' }}</td>
+      <td>{{ (m.score|int ~ '/100') if m.score is not none else '-' }}</td>
+      <td>{{ m.listing.source_id }}</td>
+      <td class="muted">{{ m.first_seen_at[:16] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">Aucune annonce notifiée pour l'instant. Lance une tournée ou ajuste tes critères dans les paramètres.</p>
+  {% endif %}
+</div>
+{% endblock %}

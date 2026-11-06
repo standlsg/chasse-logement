@@ -34,6 +34,11 @@ PORTAL_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 ]
 
 
+def portal_allowed(portals: list[str] | None, source_id: str) -> bool:
+    """Filtre de sélection des portails (liste vide = tous)."""
+    return not portals or source_id in portals
+
+
 def detect_portal(from_header: str, subject: str) -> str:
     haystack = f"{from_header}\n{subject}"
     for name, pattern in PORTAL_PATTERNS:
@@ -100,6 +105,7 @@ class ImapAlertsSource:
         password: str,
         mailbox: str = "INBOX",
         since_days: int = 2,
+        portals: list[str] | None = None,
         name: str = "alertes-mail",
     ) -> None:
         self.name = name
@@ -109,6 +115,7 @@ class ImapAlertsSource:
         self.password = password
         self.mailbox = mailbox
         self.since_days = since_days
+        self.portals = portals or []
 
     def collect(self) -> Iterator[Listing]:
         since = (date.today() - timedelta(days=self.since_days)).strftime("%d-%b-%Y")
@@ -121,7 +128,7 @@ class ImapAlertsSource:
                 _typ, msg_data = imap.fetch(num, "(RFC822)")
                 raw = msg_data[0][1]
                 listing = parse_alert_email(raw)
-                if listing is not None:
+                if listing is not None and portal_allowed(self.portals, listing.source_id):
                     yield listing
         finally:
             try:

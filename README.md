@@ -35,7 +35,7 @@ pip install -e .[dev]
 ## Configuration
 
 ```bash
-cp config.example.yaml config.yaml   # éditer : zones, budget, sources, notifications
+cp config.example.yaml config.yaml   # édité aussi via l'UI web (gitigné : contient tes critères perso)
 cp .env.example .env                 # secrets uniquement (CL_IMAP_PASSWORD, CL_SMTP_PASSWORD, ...)
 ```
 
@@ -45,6 +45,10 @@ l'alerte **email** vers la boîte dédiée.
 ## Utilisation
 
 ```bash
+# UI web de paramétrage + exécution quotidienne automatique :
+chasse-logement serve --config config.yaml --host 127.0.0.1 --port 8000
+# → http://127.0.0.1:8000  (tableau de bord) et /parametres (critères, sources, emails)
+
 # une tournée unique (à planifier avec cron, ex. tous les jours à 8h) :
 chasse-logement run --config config.yaml
 
@@ -55,18 +59,25 @@ chasse-logement daemon --config config.yaml
 chasse-logement check-robots https://www.agence-x.fr/annonces --user-agent "chasse-logement/0.1"
 ```
 
+L'UI `/parametres` permet de régler : **critères de recherche** (budget, surface,
+pièces, codes postaux/villes, meublé, exclusions, score min), **sources à consulter**
+(portails cochables + flux RSS d'agences ajout/suppression), et **destinataires email**
+des résultats quotidiens (+ mode digest/instantané). Les secrets (mots de passe) ne
+sont jamais affichés ni modifiés par l'UI.
+
 Cron (tous les jours à 8 h) :
 
 ```
 0 8 * * * cd /chemin/vers/chasse-logement && .venv/bin/chasse-logement run --config config.yaml >> run.log 2>&1
 ```
 
-Docker :
+Docker (UI sur le port 8000 + tournées automatiques) :
 
 ```bash
 cp config.example.yaml config.yaml && cp .env.example .env
 # éditer config.yaml et .env, puis :
 docker compose up -d --build
+# UI : http://<hôte>:8000
 ```
 
 ## Tests & lint
@@ -79,6 +90,6 @@ ruff format --check .
 
 ## Roadmap
 
-MVP (ce dépôt) : IMAP + RSS + matching + digest. V1 : PostGIS, géocodage, scoring prix
-vs marché (Carte des loyers ANIL), API d'agrégation, UI web. Détails dans
-[docs/architecture.md](docs/architecture.md).
+MVP (ce dépôt) : IMAP + RSS + matching + digest + UI web de paramétrage. V1 : PostGIS,
+géocodage, scoring prix vs marché (Carte des loyers ANIL), API d'agrégation. Détails
+dans [docs/architecture.md](docs/architecture.md).

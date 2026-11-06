@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}chasse-logement{% endblock %}</title>
+<style>
+  :root { --bg:#0f172a; --card:#1e293b; --fg:#e2e8f0; --muted:#94a3b8; --accent:#38bdf8; --ok:#4ade80; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+  nav { display:flex; gap:1rem; align-items:center; padding:.8rem 1.2rem; background:var(--card); border-bottom:1px solid #334155; }
+  nav a { color:var(--accent); text-decoration:none; font-weight:600; }
+  nav .brand { color:var(--fg); font-weight:800; margin-right:auto; }
+  main { max-width: 1000px; margin: 1.5rem auto; padding: 0 1rem; }
+  .card { background:var(--card); border:1px solid #334155; border-radius:.6rem; padding:1rem 1.2rem; margin-bottom:1.2rem; }
+  .stats { display:flex; gap:1rem; }
+  .stat { flex:1; text-align:center; }
+  .stat b { font-size:1.6rem; color:var(--accent); display:block; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th, td { text-align:left; padding:.45rem .6rem; border-bottom:1px solid #334155; vertical-align:top; }
+  th { color:var(--muted); font-weight:600; }
+  a.link { color:var(--accent); }
+  label { display:block; margin:.5rem 0 .2rem; color:var(--muted); font-size:.85rem; }
+  input[type=text], input[type=number], textarea, select { width:100%; padding:.45rem .6rem; border-radius:.4rem; border:1px solid #475569; background:#0b1220; color:var(--fg); }
+  textarea { min-height:5rem; }
+  .row { display:flex; gap:1rem; } .row > div { flex:1; }
+  button, .btn { background:var(--accent); color:#082f49; border:0; border-radius:.4rem; padding:.5rem 1rem; font-weight:700; cursor:pointer; }
+  button.secondary { background:#334155; color:var(--fg); }
+  .checks label { display:inline-flex; gap:.35rem; align-items:center; color:var(--fg); margin-right:1rem; }
+  .saved { color:var(--ok); font-weight:700; }
+  .muted { color:var(--muted); font-size:.85rem; }
+  form.feedrow { display:flex; gap:.5rem; align-items:end; margin-bottom:.5rem; }
+  form.feedrow > div { flex:1; }
+</style>
+</head>
+<body>
+<nav>
+  <span class="brand">🏠 chasse-logement</span>
+  <a href="/">Tableau de bord</a>
+  <a href="/parametres">Paramètres</a>
+  <form method="post" action="/run" style="margin:0"><button type="submit">▶ Lancer une tournée</button></form>
+</nav>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

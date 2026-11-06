@@ -1,5 +1,5 @@
 from chasse_logement.models import SourceKind
-from chasse_logement.sources.imap_alerts import detect_portal, parse_alert_email
+from chasse_logement.sources.imap_alerts import detect_portal, parse_alert_email, portal_allowed
 
 
 def test_detect_portal():
@@ -24,3 +24,10 @@ def test_parse_alert_email(sample_email):
 def test_parse_alert_email_empty():
     raw = b"From: x@y.fr\nSubject:\n\n"
     assert parse_alert_email(raw) is None
+
+
+def test_portal_allowed():
+    assert portal_allowed([], "leboncoin")
+    assert portal_allowed(None, "pap")
+    assert portal_allowed(["leboncoin"], "leboncoin")
+    assert not portal_allowed(["leboncoin"], "seloger")

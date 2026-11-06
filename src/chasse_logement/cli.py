@@ -26,6 +26,11 @@ def main(argv: list[str] | None = None) -> int:
     robots_p.add_argument("url")
     robots_p.add_argument("--user-agent", default="*")
 
+    serve_p = sub.add_parser("serve", help="UI web de paramétrage + exécution planifiée")
+    serve_p.add_argument("--config", default="config.yaml")
+    serve_p.add_argument("--host", default="127.0.0.1")
+    serve_p.add_argument("--port", type=int, default=8000)
+
     args = parser.parse_args(argv)
 
     if args.command == "check-robots":
@@ -39,6 +44,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         stats = run_once(cfg)
         print(json.dumps(stats, indent=2, ensure_ascii=False))
+        return 0
+
+    if args.command == "serve":
+        import uvicorn
+
+        from .web.app import create_app
+
+        uvicorn.run(create_app(args.config), host=args.host, port=args.port)
         return 0
 
     # daemon

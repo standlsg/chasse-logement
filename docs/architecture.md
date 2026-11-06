@@ -56,7 +56,11 @@
   fraîcheur ≤ 20 + prix/m² vs pool ≤ 30) → `MatchResult`.
 - `notify.py` : `EmailNotifier` (SMTP, digest HTML+texte) et `TelegramNotifier` (Bot API).
 - `pipeline.py` : `run_once()` = collect → save/dédup → evaluate → notify → stats JSON.
-- `cli.py` : `chasse-logement run --config config.yaml` (cron) et `daemon` (boucle).
+- `web/` : UI FastAPI — tableau de bord (`/`) et paramétrage (`/parametres`) : critères,
+  sources cochables (portails IMAP + flux RSS ajout/suppression), destinataires email,
+  mode digest/instantané. L'UI écrit `config.yaml` sans jamais toucher aux secrets.
+- `cli.py` : `chasse-logement run --config config.yaml` (cron), `daemon` (boucle),
+  `serve` (UI web + planificateur en arrière-plan), `check-robots`.
 - `config.py` : YAML non secret (`config.yaml`) + secrets en env (`CL_*`, `.env`).
 
 ## 4. Exécution
@@ -72,7 +76,7 @@
 
 | version | contenu |
 |---|---|
-| MVP (ce PR) | IMAP alertes natives + RSS agences + SQLite + matching + digest email/Telegram + tests + CI |
+| MVP (ce PR) | IMAP alertes natives + RSS agences + SQLite + matching + digest email/Telegram + UI web de paramétrage + tests + CI |
 | V1 | PostGIS + rayon/polygones, géocodage GéoPlateforme, scoring prix vs Carte des loyers ANIL, connecteur API agrégateur (Melo/MoteurImmo), scraping HTML ciblé de sites d'agences robots-OK, mini UI web (FastAPI) pour gérer critères et marquer vu/contacté |
 | V2 | détection de baisses de prix et d'annonces supprimées, dossier de candidature auto (DossierFacile), multi-profils |
 
