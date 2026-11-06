@@ -24,11 +24,14 @@ sources:
     password: "" # surchargé par CL_IMAP_PASSWORD dans .env
     mailbox: INBOX
     since_days: 2
+    # portails dont on exploite les alertes (vide = tous) — modifiable aussi dans l'UI
+    portals: [leboncoin, seloger, pap, bienici, logic-immo]
   # 2) Flux RSS publiés par les agences immobilières de tes zones
   #    (vérifier que le site publie bien un flux RSS public).
   rss_feeds:
     - name: agence-exemple
       url: https://www.agence-exemple.fr/annonces/rss.xml
+      enabled: true
   # 3) (V1) API d'agrégation commerciale type Melo/Stream Estate, MoteurImmo...
   #    api:
   #      enabled: false
@@ -64,6 +67,17 @@ notify:
     enabled: false
     bot_token: "" # surchargé par CL_TELEGRAM_TOKEN dans .env
     chat_id: ""
+
+enrichment:
+  geocode: true # adresse estimée via GéoPlateforme (IGN, gratuit, sans clé)
+  poi: true # écoles/commerces/transports à proximité via OSM (Overpass)
+  poi_radius_m: 800
+
+commute:
+  enabled: false
+  destination_label: "Salesforce Marseille"
+  # adresse postale exacte de destination (géocodée ; OSRM donne le temps hors trafic)
+  destination_address: ""
 
 schedule:
   hour: 8

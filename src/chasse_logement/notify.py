@@ -8,24 +8,39 @@ import httpx
 
 from .config import NotifyConfig, NotifyEmailConfig, NotifyTelegramConfig
 from .matching import MatchResult
+from .models import Listing, Property
 
 
 class Notifier(Protocol):
     def send_digest(self, subject: str, results: list[MatchResult]) -> None: ...
 
 
+def _links(item: Listing | Property) -> str:
+    """Liens vers chaque source du bien (un bien peut être présent sur plusieurs sources)."""
+    if isinstance(item, Property):
+        return " ; ".join(f"{s.source_id} : {s.url}" for s in item.sources if s.url)
+    return item.url
+
+
 def _fmt_result(r: MatchResult) -> str:
-    lst = r.listing
-    ppm = f"{lst.price_per_m2:.0f} €/m²" if lst.price_per_m2 else "prix/m² n.c."
+    item = r.listing
+    ppm = f"{item.price_per_m2:.0f} €/m²" if item.price_per_m2 else "prix/m² n.c."
+    source_label = (
+        ", ".join(s.source_id for s in item.sources)
+        if isinstance(item, Property)
+        else item.source_id
+    )
     parts = [
-        f"{lst.title or '(sans titre)'}",
-        f"prix : {lst.total_price:.0f} €/mois" if lst.total_price is not None else "prix : n.c.",
-        f"surface : {lst.surface_m2:.0f} m²" if lst.surface_m2 else "surface : n.c.",
-        f"pièces : {lst.rooms}" if lst.rooms is not None else "pièces : n.c.",
-        f"zone : {lst.postcode or lst.city or 'n.c.'}",
-        f"{ppm} — score {r.score:.0f}/100 — source {lst.source_id}",
-        lst.url,
+        f"{item.title or '(sans titre)'}",
+        f"prix : {item.total_price:.0f} €/mois" if item.total_price is not None else "prix : n.c.",
+        f"surface : {item.surface_m2:.0f} m²" if item.surface_m2 else "surface : n.c.",
+        f"pièces : {item.rooms}" if item.rooms is not None else "pièces : n.c.",
+        f"zone : {item.postcode or item.city or 'n.c.'}",
+        f"{ppm} — score {r.score:.0f}/100 — sources : {source_label}",
     ]
+    if isinstance(item, Property) and item.red_flags:
+        parts.append("⚠ à vérifier : " + " ; ".join(item.red_flags))
+    parts.append(_links(item))
     return " | ".join(p for p in parts if p)
 
 
@@ -35,15 +50,34 @@ def build_digest_text(results: list[MatchResult]) -> str:
 
 
 def build_digest_html(results: list[MatchResult]) -> str:
-    items = "".join(
-        f'<li><a href="{r.listing.url}">{r.listing.title or "(sans titre)"}</a> — '
-        f"{r.listing.total_price:.0f} €/mois — {r.listing.surface_m2 or 0:.0f} m² — "
-        f"{r.listing.postcode or ''} — score {r.score:.0f}/100</li>"
-        if r.listing.url
-        else f"<li>{r.listing.title} — score {r.score:.0f}/100</li>"
-        for r in results
-    )
-    return f"<html><body><ul>{items}</ul></body></html>"
+    items = []
+    for r in results:
+        item = r.listing
+        if isinstance(item, Property):
+            src_html = " ".join(
+                f'<a href="{s.url}">{s.source_id}</a>' for s in item.sources if s.url
+            )
+            flag = (
+                f"<br><b>⚠ à vérifier :</b> {' ; '.join(item.red_flags)}" if item.red_flags else ""
+            )
+            items.append(
+                f"<li><b>{item.title or '(sans titre)'}</b> — "
+                f"{item.total_price:.0f} €/mois — {item.surface_m2 or 0:.0f} m² — "
+                f"{item.postcode or ''} — score {r.score:.0f}/100<br>"
+                f"sources : {src_html}{flag}</li>"
+            )
+        else:
+            link = (
+                f'<a href="{item.url}">{item.title or "(sans titre)"}</a>'
+                if item.url
+                else item.title
+            )
+            items.append(
+                f"<li>{link} — {item.total_price:.0f} €/mois — "
+                f"{item.surface_m2 or 0:.0f} m² — {item.postcode or ''} "
+                f"— score {r.score:.0f}/100</li>"
+            )
+    return f"<html><body><ul>{''.join(items)}</ul></body></html>"
 
 
 class EmailNotifier:

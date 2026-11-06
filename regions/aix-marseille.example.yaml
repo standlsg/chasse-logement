@@ -1,0 +1,77 @@
+# Config régionale prête à l'emploi : Aix-en-Provence / Marseille (13), marché locatif.
+# Copier vers config.yaml, ajuster budget/critères, et mettre les secrets dans .env.
+
+database_path: data/chasse-logement.db
+
+http:
+  user_agent: "chasse-logement/0.1 (+https://github.com/standlsg/chasse-logement)"
+  min_interval_s: 2.0
+  respect_robots: true
+
+sources:
+  # Boîte mail dédiée : activer l'alerte email des recherches sauvegardées sur chaque
+  # portail ci-dessous (Leboncoin « Mes recherches », SeLoger, PAP, Bien'ici, Logic-Immo,
+  # Gens de Confiance, Appartager, Studapart).
+  imap:
+    enabled: true
+    host: imap.example.com
+    port: 993
+    user: alertes-logement@example.com
+    password: "" # CL_IMAP_PASSWORD dans .env
+    mailbox: INBOX
+    since_days: 2
+    portals: [leboncoin, seloger, pap, bienici, logic-immo, gensdeconfiance, appartager, studapart]
+  # Flux RSS d'agences locales détectés via : chasse-logement discover <site-agence>
+  rss_feeds: []
+    # - name: agence-locale
+    #   url: https://www.agence-locale.fr/rss.xml
+    #   enabled: true
+
+criteria:
+  budget_max: 1200 # loyer + charges — marché Aix/Marseille : studio ~600-750 €, 2P ~850-1100 €
+  min_surface_m2: 25
+  min_rooms: 1
+  # Métropole Aix-Marseille-Provence (Marseille 13001-13016, Aix 13080/13090/13100/13290, etc.)
+  # à compléter via geo.api.gouv.fr (communes de la métropole AMP)
+  # Marseille 13001-13016 + Aix et communes de la métropole (étendre via geo.api.gouv.fr
+  # ou en un clic via le « Catalogue régional » de l'UI)
+  postcodes: ["13001", "13002", "13003", "13004", "13005", "13006", "13007", "13008",
+    "13009", "13010", "13011", "13012", "13013", "13014", "13015", "13016",
+    "13080", "13090", "13100", "13290", "13127", "13170", "13300", "13330",
+    "13400", "13420", "13500", "13530", "13600", "13610", "13800", "13880"]
+  min_score: 50
+
+# Enrichissements de l'onglet Biens
+enrichment:
+  geocode: true      # adresse estimée via GéoPlateforme (IGN, gratuit)
+  poi: true          # écoles/commerces/transports à proximité via OSM (Overpass)
+  poi_radius_m: 800
+
+# Trajet quotidien « hors trafic » (OSRM free-flow) vers le bureau
+commute:
+  enabled: true
+  destination_label: "Salesforce Marseille"
+  # Bureau Salesforce de Marseille : The Babel Community, entre La Joliette et le Vieux-Port.
+  # Mettre l'adresse postale exacte pour un géocodage précis (la BAN géocode les adresses).
+  destination_address: "The Babel Community, 13002 Marseille"
+
+notify:
+  mode: digest # digest = 1 mail/jour avec UNIQUEMENT les nouveaux biens
+  email:
+    enabled: true
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    smtp_user: alertes-logement@example.com
+    password: "" # CL_SMTP_PASSWORD dans .env
+    from_addr: alertes-logement@example.com
+    to_addrs: ["moi@example.com"]
+    starttls: true
+  telegram:
+    enabled: false
+    bot_token: "" # CL_TELEGRAM_TOKEN
+    chat_id: ""
+
+schedule:
+  hour: 8
+  minute: 0
+  interval_hours: 24

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Paramètres — chasse-logement{% endblock %}
+{% block content %}
+{% set c = raw.get('criteria', {}) %}
+{% set s = raw.get('sources', {}) %}
+{% set imap = s.get('imap', {}) %}
+{% set api = s.get('api', {}) %}
+{% set feeds = s.get('rss_feeds', []) %}
+{% set n = raw.get('notify', {}) %}
+{% set email = n.get('email', {}) %}
+<h1>Paramètres</h1>
+{% if saved %}<p class="saved">✅ Enregistré dans config.yaml.</p>{% endif %}
+
+<form method="post" action="/parametres">
+<div class="card">
+  <h2>Critères de recherche</h2>
+  <div class="row">
+    <div><label>Budget max (€/mois, charges comprises)</label><input type="number" step="50" name="budget_max" value="{{ c.get('budget_max', 2000) }}" required></div>
+    <div><label>Surface min (m²)</label><input type="number" step="1" name="min_surface_m2" value="{{ c.get('min_surface_m2', 0) }}"></div>
+    <div><label>Pièces min</label><input type="number" step="1" name="min_rooms" value="{{ c.get('min_rooms', 0) }}"></div>
+  </div>
+  <div class="row">
+    <div><label>Codes postaux (séparés par des espaces)</label><input type="text" name="postcodes" value="{{ (c.get('postcodes') or [])|join(' ') }}"></div>
+    <div><label>Villes (séparées par des espaces)</label><input type="text" name="cities" value="{{ (c.get('cities') or [])|join(' ') }}"></div>
+  </div>
+  <div class="row">
+    <div><label>Meublé</label>
+      <select name="furnished">
+        <option value="any" {% if c.get('furnished') is none %}selected{% endif %}>Indifférent</option>
+        <option value="false" {% if c.get('furnished') is sameas false %}selected{% endif %}>Non meublé uniquement</option>
+        <option value="true" {% if c.get('furnished') is sameas true %}selected{% endif %}>Meublé uniquement</option>
+      </select>
+    </div>
+    <div><label>Score min pour notifier (0-100)</label><input type="number" step="5" name="min_score" value="{{ c.get('min_score', 50) }}"></div>
+  </div>
+  <label>Mots-clés à exclure (séparés par des espaces)</label>
+  <input type="text" name="exclude_keywords" value="{{ (c.get('exclude_keywords') or [])|join(' ') }}">
+  <p class="muted">Astuce : pour un critère par rayon, renseigne center_latitude / center_longitude / radius_km directement dans config.yaml.</p>
+</div>
+
+<div class="card">
+  <h2>Sources à consulter</h2>
+  <h3>Portails (alertes email lues dans la boîte dédiée)</h3>
+  <div class="checks">
+    {% for p in portals %}
+    <label><input type="checkbox" name="portals" value="{{ p }}" {% if p in (imap.get('portals') or []) %}checked{% endif %}> {{ p }}</label>
+    {% endfor %}
+  </div>
+  <p class="muted">Pense à activer l'alerte email de ta recherche sauvegardée sur chaque portail coché, vers ta boîte dédiée.</p>
+  <h3>API d'agrégation commerciale</h3>
+  <div class="checks"><label><input type="checkbox" name="api_enabled" value="1" {% if api.get('enabled') %}checked{% endif %}> activer (base_url + clé à configurer dans config.yaml / .env)</label></div>
+</div>
+
+<div class="card">
+  <h2>Notifications quotidiennes</h2>
+  <label>Destinataires email (un par ligne)</label>
+  <textarea name="email_to">{{ (email.get('to_addrs') or [])|join('\n') }}</textarea>
+  <div class="row">
+    <div><label>Mode d'envoi</label>
+      <select name="notify_mode">
+        <option value="digest" {% if n.get('mode', 'digest') == 'digest' %}selected{% endif %}>Digest (1 mail par tournée)</option>
+        <option value="instant" {% if n.get('mode') == 'instant' %}selected{% endif %}>Instantané (1 message par annonce)</option>
+      </select>
+    </div>
+  </div>
+  <p class="muted">Serveur SMTP, mots de passe et token Telegram restent dans config.yaml / .env : jamais affichés ni modifiés ici.</p>
+</div>
+
+<button type="submit">💾 Enregistrer les paramètres</button>
+</form>
+
+<div class="card">
+  <h2>Flux RSS d'agences</h2>
+  {% if feeds %}
+  {% for f in feeds %}
+  <form class="feedrow" method="post" action="/parametres/feed/update">
+    <input type="hidden" name="idx" value="{{ loop.index0 }}">
+    <div><label>Nom</label><input type="text" name="name" value="{{ f.get('name', '') }}" required></div>
+    <div><label>URL du flux RSS</label><input type="text" name="url" value="{{ f.get('url', '') }}" required></div>
+    <div><label>Actif</label><input type="hidden" name="enabled" value="0"><input type="checkbox" name="enabled" value="1" {% if f.get('enabled', True) %}checked{% endif %}></div>
+    <div><button type="submit">💾</button></div>
+    <div><button type="submit" formaction="/parametres/feed/delete" class="secondary">🗑</button></div>
+  </form>
+  {% endfor %}
+  {% else %}
+  <p class="muted">Aucun flux RSS configuré.</p>
+  {% endif %}
+  <form class="feedrow" method="post" action="/parametres/feed/add">
+    <div><label>Ajouter un flux RSS d'agence</label><input type="text" name="name" placeholder="Nom de l'agence" required></div>
+    <div><label>URL</label><input type="text" name="url" placeholder="https://www.agence.fr/annonces/rss.xml" required></div>
+    <div><button type="submit">➕ Ajouter</button></div>
+  </form>
+  <p class="muted">Vérifie que le site publie bien un flux RSS public (et que robots.txt l'autorise : <code>chasse-logement check-robots &lt;url&gt;</code>). Pour détecter automatiquement les flux d'une agence : <code>chasse-logement discover &lt;site-agence&gt;</code>.</p>
+</div>
+
+<div class="card">
+  <h2>Catalogue régional</h2>
+  <form method="post" action="/parametres/catalog">
+    <div class="row">
+      <div><label>Région cible</label>
+        <select name="region">
+          {% for key, reg in catalogs.items() %}
+          <option value="{{ key }}">{{ reg.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div><label>&nbsp;</label>
+        <span class="checks"><label><input type="checkbox" name="apply_postcodes" value="1" checked> ajouter les codes postaux de la région aux critères</label></span>
+      </div>
+    </div>
+    <button type="submit" class="secondary">📦 Appliquer le catalogue (portails + agences + CP)</button>
+  </form>
+  {% for key, reg in catalogs.items() %}
+  <details style="margin-top:.8rem">
+    <summary><b>{{ reg.label }}</b> — sources référencées</summary>
+    <p class="muted">Portails à cocher ci-dessus (activer l'alerte email de ta recherche sauvegardée vers la boîte dédiée) : {{ reg.portals|join(', ') }}</p>
+    <p class="muted">Agences locales :</p>
+    <ul>
+      {% for a in reg.agencies %}<li><a class="link" href="{{ a.site }}">{{ a.name }}</a></li>{% endfor %}
+    </ul>
+    <p class="muted">{{ reg.agencies_note }}</p>
+    <p class="muted">Dispositifs à suivre manuellement (compte requis, pas d'API publique) :</p>
+    <ul>
+      {% for m in reg.manual %}<li><a class="link" href="{{ m.url }}">{{ m.name }}</a> — {{ m.why }}</li>{% endfor %}
+    </ul>
+  </details>
+  {% endfor %}
+</div>
+{% endblock %}

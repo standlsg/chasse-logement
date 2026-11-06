@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Tableau de bord — chasse-logement{% endblock %}
+{% block content %}
+<div class="card stats">
+  <div class="stat"><b>{{ stats.total }}</b>annonces vues</div>
+  <div class="stat"><b>{{ stats.properties }}</b>biens (dédupliqués)</div>
+  <div class="stat"><b>{{ stats.notified }}</b>notifiés</div>
+  <div class="stat"><b>{{ criteria.budget_max|int }} €</b>budget max</div>
+</div>
+<div class="card">
+  <h2>Derniers biens notifiés (nouveaux biens uniquement par email)</h2>
+  {% if props %}
+  <table>
+    <tr><th>Bien</th><th>Prix</th><th>Surface</th><th>Pièces</th><th>Zone</th><th>Score</th><th>Sources</th><th>⚠</th><th>Vu le</th></tr>
+    {% for p in props %}
+    <tr>
+      <td>{% if p.url %}<a class="link" href="{{ p.url }}">{{ p.title or '(sans titre)' }}</a>{% else %}{{ p.title }}{% endif %}</td>
+      <td>{{ (p.total_price|int ~ ' €') if p.total_price else 'n.c.' }}</td>
+      <td>{{ (p.surface_m2|int ~ ' m²') if p.surface_m2 else 'n.c.' }}</td>
+      <td>{{ p.rooms if p.rooms is not none else 'n.c.' }}</td>
+      <td>{{ p.postcode or p.city or 'n.c.' }}</td>
+      <td>{{ p.score|int }}/100</td>
+      <td>{{ p.sources|length }}</td>
+      <td>{% if p.red_flags %}⚠️{% endif %}</td>
+      <td class="muted">{{ p.first_seen_at.strftime('%d/%m %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted">Détail complet (liens par source, incohérences, adresse, écoles/commerces, trajet) dans l'onglet <a class="link" href="/biens">Biens</a>.</p>
+  {% else %}
+  <p class="muted">Aucun bien notifié pour l'instant. Lance une tournée ou ajuste tes critères dans les paramètres.</p>
+  {% endif %}
+</div>
+{% endblock %}
