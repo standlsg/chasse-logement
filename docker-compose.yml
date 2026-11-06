@@ -1,0 +1,9 @@
+services:
+  chasse-logement:
+    build: .
+    env_file: .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/app/data
+    command: ["chasse-logement", "daemon", "--config", "/app/config.yaml"]
+    restart: unless-stopped

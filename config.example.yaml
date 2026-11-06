@@ -1,0 +1,71 @@
+# Configuration de chasse-logement — copier vers config.yaml et adapter.
+# Les secrets (mots de passe, tokens) vont dans .env (voir .env.example), PAS ici.
+
+database_path: data/chasse-logement.db
+
+http:
+  # User-Agent honnête : jamais de contournement d'anti-bot.
+  user_agent: "chasse-logement/0.1 (+https://github.com/standlsg/chasse-logement)"
+  min_interval_s: 2.0
+  # Ne jamais fetcher une URL interdite par robots.txt (désactivable = OFF en prod).
+  respect_robots: true
+
+sources:
+  # 1) Alertes natives des portails : créer une adresse mail dédiée, y enregistrer
+  #    tes recherches sauvegardées (Leboncoin « Mes recherches », SeLoger, PAP,
+  #    Bien'ici, Logic-Immo...) avec l'alerte email activée. Le connecteur lit
+  #    UNIQUEMENT les emails reçus dans cette boîte (IMAP) : il ne fetch jamais
+  #    les pages des portails (conformité CGU / droit sui generis).
+  imap:
+    enabled: true
+    host: imap.example.com
+    port: 993
+    user: alertes-logement@example.com
+    password: "" # surchargé par CL_IMAP_PASSWORD dans .env
+    mailbox: INBOX
+    since_days: 2
+  # 2) Flux RSS publiés par les agences immobilières de tes zones
+  #    (vérifier que le site publie bien un flux RSS public).
+  rss_feeds:
+    - name: agence-exemple
+      url: https://www.agence-exemple.fr/annonces/rss.xml
+  # 3) (V1) API d'agrégation commerciale type Melo/Stream Estate, MoteurImmo...
+  #    api:
+  #      enabled: false
+  #      base_url: https://api.exemple.fr
+  #      api_key: "" # CL_API_KEY
+
+criteria:
+  budget_max: 1200 # loyer + charges
+  min_surface_m2: 30
+  min_rooms: 2
+  # zones : codes postaux OU villes OU rayon autour d'un point (décommenter l'une)
+  postcodes: ["75011", "75020", "93100"]
+  # cities: ["Paris", "Montreuil"]
+  # center_latitude: 48.8566
+  # center_longitude: 2.3522
+  # radius_km: 10
+  # furnished: false # true = meublé uniquement, false = non meublé uniquement
+  exclude_keywords: []
+  min_score: 50 # score minimum (0-100) pour notifier
+
+notify:
+  mode: digest # digest = 1 mail par tournée ; instant = 1 message par annonce
+  email:
+    enabled: true
+    smtp_host: smtp.example.com
+    smtp_port: 587
+    smtp_user: alertes-logement@example.com
+    password: "" # surchargé par CL_SMTP_PASSWORD dans .env
+    from_addr: alertes-logement@example.com
+    to_addrs: ["moi@example.com"]
+    starttls: true
+  telegram:
+    enabled: false
+    bot_token: "" # surchargé par CL_TELEGRAM_TOKEN dans .env
+    chat_id: ""
+
+schedule:
+  hour: 8
+  minute: 0
+  interval_hours: 24
