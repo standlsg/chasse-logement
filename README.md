@@ -11,6 +11,13 @@ email/Telegram.
 > Il respecte robots.txt, utilise un User-Agent honnête et une cadence lente.
 > Voir [docs/conformite.md](docs/conformite.md).
 
+## Workflow Git (branches prod / preprod)
+
+- **`prod`** : version stable, déployée en production.
+- **`preprod`** : branche de travail — toutes les itérations y sont poussées et testées (CI verte requise).
+- **PR « preprod → prod »** (brouillon, toujours ouverte) : liste les itérations en attente de validation.
+- À chaque validation de l'utilisateur, l'itération est **mergée vers `prod`** (merge commit), puis le travail reprend sur `preprod`.
+
 ## Documentation
 
 - [docs/etude-faisabilite.md](docs/etude-faisabilite.md) — sources accessibles, cadre juridique, options, verdict
