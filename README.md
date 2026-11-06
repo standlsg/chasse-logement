@@ -63,7 +63,10 @@ studapart) et les codes postaux de la métropole Aix-Marseille. Pour détecter l
 d'une agence locale : `chasse-logement discover https://www.agence-locale.fr`.
 
 Sur chaque portail : sauvegarde ta recherche avec les bons critères, puis active
-l'alerte **email** vers la boîte dédiée.
+l'alerte **email** vers la boîte dédiée. Option : API d'agrégation **MoteurImmo**
+(`sources.api`, clé `CL_API_KEY`) en source supplémentaire. IA **Mistral**
+(`ai.provider: mistral`, clé `CL_MISTRAL_API_KEY`) : IA-1 signaux texte, IA-2 dédup
+sémantique cross-sources, IA-3 risque d'arnaque — textes redactés avant envoi.
 
 ## Utilisation
 
