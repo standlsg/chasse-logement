@@ -105,6 +105,50 @@ def test_parametres_post_updates_config_and_preserves_secret(client):
     assert raw["notify"]["mode"] == "instant"
 
 
+def test_parametres_post_updates_accounts_and_preserves_passwords(client):
+    c, path = client
+    r = c.post(
+        "/parametres",
+        data={
+            "budget_max": "2800",
+            "min_surface_m2": "0",
+            "min_rooms": "4",
+            "postcodes": "13100 13008",
+            "cities": "",
+            "furnished": "any",
+            "exclude_keywords": "",
+            "min_score": "50",
+            "portals": ["leboncoin"],
+            "email_to": "moi@example.com",
+            "notify_mode": "digest",
+            "imap_host": "imap.gmail.com",
+            "imap_port": "993",
+            "imap_user": "chasselogement@gmail.com",
+            "imap_mailbox": "INBOX",
+            "imap_since_days": "3",
+            "api_base_url": "https://api.moteurimmo.fr",
+            "resend_enabled": "1",
+            "resend_from": "alertes@mon-domaine.fr",
+            "smtp_host": "smtp.gmail.com",
+            "smtp_port": "587",
+            "smtp_user": "chasselogement@gmail.com",
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    imap = raw["sources"]["imap"]
+    assert imap["host"] == "imap.gmail.com"
+    assert imap["user"] == "chasselogement@gmail.com"
+    assert imap["since_days"] == 3
+    assert imap["password"] == "secret"  # jamais écrasé par l'UI
+    assert raw["sources"]["api"]["base_url"] == "https://api.moteurimmo.fr"
+    assert raw["notify"]["resend"]["enabled"] is True
+    assert raw["notify"]["resend"]["from_addr"] == "alertes@mon-domaine.fr"
+    assert raw["notify"]["email"]["smtp_host"] == "smtp.gmail.com"
+    assert not raw["notify"]["email"].get("password")  # l'UI n'écrit jamais de mot de passe
+
+
 def test_feed_add_update_delete(client):
     c, path = client
     r = c.post(

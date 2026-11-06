@@ -52,6 +52,33 @@
 </div>
 
 <div class="card">
+  <h2>Comptes & envoi (les mots de passe restent dans les variables d'env — jamais ici)</h2>
+  {% set imap = s.get('imap', {}) %}
+  <div class="row">
+    <div><label>Serveur IMAP de la boîte dédiée</label><input type="text" name="imap_host" value="{{ imap.get('host', 'imap.gmail.com') }}"></div>
+    <div><label>Port IMAP</label><input type="number" name="imap_port" value="{{ imap.get('port', 993) }}"></div>
+    <div><label>Adresse de la boîte dédiée</label><input type="text" name="imap_user" value="{{ imap.get('user', '') }}" placeholder="chasselogement@gmail.com"></div>
+  </div>
+  <div class="row">
+    <div><label>Dossier IMAP</label><input type="text" name="imap_mailbox" value="{{ imap.get('mailbox', 'INBOX') }}"></div>
+    <div><label>Lire les e-mails des N derniers jours</label><input type="number" name="imap_since_days" value="{{ imap.get('since_days', 2) }}"></div>
+    <div><label>URL de base API agrégateur (MoteurImmo…)</label><input type="text" name="api_base_url" value="{{ api.get('base_url', '') }}" placeholder="https://api.moteurimmo.fr"></div>
+  </div>
+  <p class="muted">Mot de passe IMAP : variable d'env <code>CL_IMAP_PASSWORD</code> (Clever Cloud). Mot de passe d'application Gmail recommandé si 2FA.</p>
+  <h3>Envoi des e-mails</h3>
+  <div class="row">
+    <div><label>API Resend activée</label><span class="checks"><label><input type="checkbox" name="resend_enabled" value="1" {% if n.get('resend', {}).get('enabled') %}checked{% endif %}> oui (recommandé sur Clever Cloud)</label></span></div>
+    <div><label>Adresse d'envoi Resend (from)</label><input type="text" name="resend_from" value="{{ n.get('resend', {}).get('from_addr', '') }}" placeholder="alertes@ton-domaine.fr"></div>
+  </div>
+  <p class="muted">Clé Resend : <code>CL_RESEND_API_KEY</code>. Alternative SMTP : hôte/port/identifiant ci-dessous (mot de passe : <code>CL_SMTP_PASSWORD</code>).</p>
+  <div class="row">
+    <div><label>Hôte SMTP</label><input type="text" name="smtp_host" value="{{ email.get('smtp_host', '') }}"></div>
+    <div><label>Port SMTP</label><input type="number" name="smtp_port" value="{{ email.get('smtp_port', 587) }}"></div>
+    <div><label>Identifiant SMTP</label><input type="text" name="smtp_user" value="{{ email.get('smtp_user', '') }}"></div>
+  </div>
+</div>
+
+<div class="card">
   <h2>Notifications quotidiennes</h2>
   <label>Destinataires email (un par ligne)</label>
   <textarea name="email_to">{{ (email.get('to_addrs') or [])|join('\n') }}</textarea>

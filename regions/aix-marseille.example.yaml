@@ -15,9 +15,9 @@ sources:
   # Gens de Confiance, Appartager, Studapart).
   imap:
     enabled: true
-    host: imap.example.com
+    host: imap.gmail.com # Gmail ; autre fournisseur = son serveur IMAP
     port: 993
-    user: alertes-logement@example.com
+    user: chasselogement@gmail.com # boîte dédiée (réglable aussi dans l'UI /parametres)
     password: "" # CL_IMAP_PASSWORD dans .env
     mailbox: INBOX
     since_days: 2

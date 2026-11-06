@@ -224,6 +224,17 @@ def create_app(config_path: str, run_scheduler: bool = True) -> FastAPI:
         api_enabled: bool = Form(False),
         email_to: str = Form(""),
         notify_mode: str = Form("digest"),
+        imap_host: str = Form(""),
+        imap_port: int = Form(993),
+        imap_user: str = Form(""),
+        imap_mailbox: str = Form("INBOX"),
+        imap_since_days: int = Form(2),
+        api_base_url: str = Form(""),
+        resend_enabled: bool = Form(False),
+        resend_from: str = Form(""),
+        smtp_host: str = Form(""),
+        smtp_port: int = Form(587),
+        smtp_user: str = Form(""),
     ) -> RedirectResponse:
         raw = load_raw()
         criteria = raw.setdefault("criteria", {})
@@ -240,11 +251,32 @@ def create_app(config_path: str, run_scheduler: bool = True) -> FastAPI:
             }
         )
         sources = raw.setdefault("sources", {})
-        sources.setdefault("imap", {})["portals"] = portals
-        sources.setdefault("api", {})["enabled"] = api_enabled
+        imap = sources.setdefault("imap", {})
+        imap["portals"] = portals
+        # les mots de passe ne sont JAMAIS lus/écrits ici : ils restent dans .env / env Clever Cloud
+        imap.update(
+            {
+                "host": imap_host,
+                "port": imap_port,
+                "user": imap_user,
+                "mailbox": imap_mailbox,
+                "since_days": imap_since_days,
+            }
+        )
+        api = sources.setdefault("api", {})
+        api["enabled"] = api_enabled
+        if api_base_url:
+            api["base_url"] = api_base_url
         notify = raw.setdefault("notify", {})
         notify["mode"] = notify_mode
-        notify.setdefault("email", {})["to_addrs"] = _parse_list(email_to)
+        email = notify.setdefault("email", {})
+        email["to_addrs"] = _parse_list(email_to)
+        if smtp_host:
+            email.update({"smtp_host": smtp_host, "smtp_port": smtp_port, "smtp_user": smtp_user})
+        resend = notify.setdefault("resend", {})
+        resend["enabled"] = resend_enabled
+        if resend_from:
+            resend["from_addr"] = resend_from
         save_raw(raw)
         return RedirectResponse("/parametres?saved=1", status_code=303)
 
