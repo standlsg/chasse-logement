@@ -15,6 +15,8 @@ email/Telegram.
 
 - **Local (recommandé pour commencer, 0 €, < 1 Go de disque)** : voir [docs/local.md](docs/local.md) — `chasse-logement serve` puis http://127.0.0.1:8000.
 - **VPS / hébergeur dynamique (HTTPS + auth, ~3-6 €/mois)** : voir [deploy/README.md](deploy/README.md) (comparatif Hetzner/OVH/Scaleway/Koyeb/Clever Cloud/Oracle Free + déploiement Docker + Caddy + CI SSH).
+- **Render (tier gratuit, 0 €)** : voir [docs/render.md](docs/render.md) + `render.yaml` (blueprint 1 clic, région UE). Pièges free gérés : keep-alive sur `/healthz`, emails via API Resend (SMTP bloqué), disque éphémère (SQLite perdu au redeploy).
+- **Clever Cloud (France, persistant, ~5-10 €/mois)** : voir [docs/clevercloud.md](docs/clevercloud.md) — Docker auto, FS Bucket monté sur `/app/data` (SQLite + config persistants), mails via API Resend, pas besoin de DB dédiée pour l'instant.
 - GitHub Pages = statique uniquement : ne peut PAS exécuter l'interface (voir deploy/README.md).
 
 ## Workflow Git (branches prod / preprod)

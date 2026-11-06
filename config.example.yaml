@@ -68,6 +68,11 @@ notify:
     enabled: false
     bot_token: "" # surchargé par CL_TELEGRAM_TOKEN dans .env
     chat_id: ""
+  # API Resend (HTTPS/443) — recommandé sur PaaS (SMTP souvent bloqué/filtré)
+  resend:
+    enabled: false
+    api_key: "" # CL_RESEND_API_KEY
+    from_addr: "" # ex. alertes@ton-domaine.resend.dev (domaine vérifié Resend)
 
 enrichment:
   geocode: true # adresse estimée via GéoPlateforme (IGN, gratuit, sans clé)

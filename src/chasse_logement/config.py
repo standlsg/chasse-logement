@@ -75,10 +75,20 @@ class NotifyTelegramConfig(BaseModel):
     chat_id: str = ""
 
 
+class ResendConfig(BaseModel):
+    """API Resend (HTTPS/443) — fonctionne sur les hébergeurs free qui bloquent le SMTP
+    (Render bloque 25/465/587). 3000 emails/mois gratuits."""
+
+    enabled: bool = False
+    api_key: str = ""  # CL_RESEND_API_KEY
+    from_addr: str = ""  # ex. "alertes@ton-domaine-verifie.resend.dev"
+
+
 class NotifyConfig(BaseModel):
     mode: Literal["digest", "instant"] = "digest"
     email: NotifyEmailConfig = Field(default_factory=NotifyEmailConfig)
     telegram: NotifyTelegramConfig = Field(default_factory=NotifyTelegramConfig)
+    resend: ResendConfig = Field(default_factory=ResendConfig)
 
 
 class ScheduleConfig(BaseModel):
@@ -120,6 +130,7 @@ class Secrets(BaseSettings):
     smtp_password: str | None = None
     telegram_token: str | None = None
     api_key: str | None = None
+    resend_api_key: str | None = None
 
 
 def load_config(path: str | Path) -> AppConfig:
@@ -134,4 +145,6 @@ def load_config(path: str | Path) -> AppConfig:
         cfg.notify.telegram.bot_token = secrets.telegram_token
     if secrets.api_key:
         cfg.sources.api.api_key = secrets.api_key
+    if secrets.resend_api_key:
+        cfg.notify.resend.api_key = secrets.resend_api_key
     return cfg

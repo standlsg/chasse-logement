@@ -2,11 +2,27 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import shutil
 import sys
 import time
+from pathlib import Path
 
 from .config import load_config
 from .pipeline import run_once
+
+
+def _ensure_config(path: str) -> str:
+    """Si le fichier de config n'existe pas (ex. 1er boot sur volume persistant Clever
+    Cloud monté en /app/data), le copier depuis la config embarquée dans l'image."""
+    p = Path(path)
+    if not p.exists():
+        baked = Path("config.yaml")
+        if baked.exists() and p.resolve() != baked.resolve():
+            p.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(baked, p)
+            print(f"config initialisée depuis l'image -> {p}", file=sys.stderr)
+    return str(p)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -28,8 +44,11 @@ def main(argv: list[str] | None = None) -> int:
 
     serve_p = sub.add_parser("serve", help="UI web de paramétrage + exécution planifiée")
     serve_p.add_argument("--config", default="config.yaml")
-    serve_p.add_argument("--host", default="127.0.0.1")
-    serve_p.add_argument("--port", type=int, default=8000)
+    # Sur Render (env RENDER=... + PORT=...), on écoute sur 0.0.0.0:$PORT
+    # Sur PaaS (Render/Clever Cloud : env RENDER ou PORT renseignée), on écoute sur 0.0.0.0:$PORT
+    _on_paas = bool(os.environ.get("RENDER") or os.environ.get("PORT"))
+    serve_p.add_argument("--host", default="0.0.0.0" if _on_paas else "127.0.0.1")
+    serve_p.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
 
     disc_p = sub.add_parser("discover", help="détecte les flux RSS d'un site (robots.txt respecté)")
     disc_p.add_argument("url")
@@ -39,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
     purge_p.add_argument("--days", type=int, default=None)
 
     args = parser.parse_args(argv)
+
+    if args.command in {"run", "daemon", "serve", "purge"}:
+        args.config = _ensure_config(args.config)
 
     if args.command == "check-robots":
         from .robots import robots_summary
