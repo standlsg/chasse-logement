@@ -67,6 +67,7 @@ class Property(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     inconsistencies: list[str] = Field(default_factory=list)
     red_flags: list[str] = Field(default_factory=list)
+    signals: dict | None = None  # IA-1 : signaux extraits du texte libre (voir ai/signals.py)
     score: float = 0.0
     notified: bool = False
     published_at: datetime | None = None
@@ -76,6 +77,14 @@ class Property(BaseModel):
     @property
     def url(self) -> str:
         return self.sources[0].url if self.sources else ""
+
+    @property
+    def rooms_effective(self) -> int:
+        """Pièces + 1 si l'IA-1 a détecté un bureau (ex. « bureau à la cave »)."""
+        base = self.rooms or 0
+        if self.signals and self.signals.get("has_office"):
+            base += 1
+        return base
 
     @property
     def price_per_m2(self) -> float | None:

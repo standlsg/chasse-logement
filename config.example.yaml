@@ -2,6 +2,7 @@
 # Les secrets (mots de passe, tokens) vont dans .env (voir .env.example), PAS ici.
 
 database_path: data/chasse-logement.db
+retention_days: 90 # purge auto des annonces/biens plus vieux (0 = jamais) — utile si disque limité
 
 http:
   # User-Agent honnête : jamais de contournement d'anti-bot.
@@ -32,11 +33,16 @@ sources:
     - name: agence-exemple
       url: https://www.agence-exemple.fr/annonces/rss.xml
       enabled: true
-  # 3) (V1) API d'agrégation commerciale type Melo/Stream Estate, MoteurImmo...
+  # 3) API d'agrégation commerciale (contrat payant, légal) — ex. MoteurImmo :
+  #    compte + clé sur moteurimmo.fr/offre-api ; ajuster path/items_path selon leur doc.
   #    api:
   #      enabled: false
-  #      base_url: https://api.exemple.fr
+  #      base_url: https://api.moteurimmo.fr
   #      api_key: "" # CL_API_KEY
+  #      path: /api/v1/annonces
+  #      header_name: X-API-Key
+  #      items_path: annonces
+  #      limit: 100
 
 criteria:
   budget_max: 1200 # loyer + charges
@@ -67,6 +73,11 @@ notify:
     enabled: false
     bot_token: "" # surchargé par CL_TELEGRAM_TOKEN dans .env
     chat_id: ""
+  # API Resend (HTTPS/443) — recommandé sur PaaS (SMTP souvent bloqué/filtré)
+  resend:
+    enabled: false
+    api_key: "" # CL_RESEND_API_KEY
+    from_addr: "" # ex. alertes@ton-domaine.resend.dev (domaine vérifié Resend)
 
 enrichment:
   geocode: true # adresse estimée via GéoPlateforme (IGN, gratuit, sans clé)
@@ -78,6 +89,16 @@ commute:
   destination_label: "Salesforce Marseille"
   # adresse postale exacte de destination (géocodée ; OSRM donne le temps hors trafic)
   destination_address: ""
+
+# Modules IA (provider Mistral API). off = aucun appel externe (défaut).
+# Les textes envoyés à l'API sont d'abord redactés (tél/email/contact des annonceurs).
+ai:
+  provider: off # off | mistral
+  api_key: "" # CL_MISTRAL_API_KEY
+  model: mistral-small-latest
+  run_signals: true # IA-1 : signaux texte (bureau à la cave, jardin, parking…)
+  run_dedup: true # IA-2 : dédup sémantique cross-sources (paires ambiguës)
+  max_pairs_per_run: 50
 
 schedule:
   hour: 8

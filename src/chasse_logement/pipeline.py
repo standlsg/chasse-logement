@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from .ai.assess import assess_property
+from .ai.dedup import make_ai_decider
+from .ai.signals import MistralClient, extract_signals
 from .config import AppConfig
 from .geocoding import Geocoder, address_query
 from .http import PoliteClient
@@ -8,6 +11,7 @@ from .merge import build_property, cluster
 from .models import Listing, Property
 from .notify import Notifier, build_notifier
 from .redflags import red_flags
+from .sources.api import ApiAggregatorSource
 from .sources.base import Source
 from .sources.imap_alerts import ImapAlertsSource
 from .sources.rss import RssSource
@@ -33,12 +37,17 @@ def build_sources(cfg: AppConfig, client: PoliteClient) -> list[Source]:
         if not feed.enabled:
             continue
         sources.append(RssSource(feed.name, feed.url, client=client))
+    if cfg.sources.api.enabled:
+        sources.append(ApiAggregatorSource(cfg.sources.api, cfg.criteria))
     return sources
 
 
-def rebuild_properties(store: ListingStore) -> list[Property]:
-    """Reclusterise toutes les annonces en biens (Property) fusionnés cross-sources."""
-    return [build_property(group) for group in cluster(store.all_listings())]
+def rebuild_properties(store: ListingStore, decider=None) -> list[Property]:
+    """Reclusterise toutes les annonces en biens (Property) fusionnés cross-sources.
+
+    decider = IA-2 optionnelle (décide des paires ambiguës ; None = heuristique seule).
+    """
+    return [build_property(group) for group in cluster(store.all_listings(), decider=decider)]
 
 
 def run_once(
@@ -85,7 +94,13 @@ def run_once(
             except Exception as exc:  # noqa: BLE001 - une source en panne ne bloque pas la tournée
                 stats.setdefault("source_errors", {})[src.name] = str(exc)
         if fresh:
-            props = rebuild_properties(store)
+            ai_client = MistralClient(cfg.ai) if cfg.ai.provider != "off" else None
+            decider = (
+                make_ai_decider(cfg.ai, ai_client, cache=store, max_pairs=cfg.ai.max_pairs_per_run)
+                if (ai_client is not None and cfg.ai.run_dedup)
+                else None
+            )
+            props = rebuild_properties(store, decider=decider)
             stats["properties"] = len(props)
             pool = store.recent_pool(days=30)
             pool_ppm = [lst.price_per_m2 for lst in pool if lst.price_per_m2]
@@ -104,6 +119,27 @@ def run_once(
                         prop.longitude = geo.longitude
                         prop.address_label = geo.label
                         prop.address_precision = geo.precision
+                if is_new and ai_client is not None and cfg.ai.run_signals:
+                    prop.signals = extract_signals(
+                        f"{prop.title}\n{prop.description}", cfg.ai, client=ai_client, cache=store
+                    ).model_dump()
+                if is_new and ai_client is not None and cfg.ai.run_risk:
+                    sources_summary = " ; ".join(
+                        f"{s.source_id}: prix={s.price}, surface={s.surface_m2}, pièces={s.rooms}"
+                        for s in prop.sources
+                    )
+                    risk = assess_property(
+                        f"{prop.title}\n{prop.description}",
+                        sources_summary,
+                        cfg.ai,
+                        ai_client,
+                        cache=store,
+                    )
+                    if risk.scam_risk >= 0.5:
+                        prop.red_flags.extend(
+                            [f"IA: {r}" for r in risk.reasons]
+                            or [f"IA: risque d'arnaque évalué à {risk.scam_risk:.0%}"]
+                        )
                 if is_new:
                     res = evaluate(prop, cfg.criteria, pool)
                     if res is not None:
@@ -123,6 +159,8 @@ def run_once(
                     if isinstance(res.listing, Property):
                         store.save_property(res.listing, notified=True)
                 stats["notified"] = True
+        if cfg.retention_days > 0:
+            stats["purged"] = store.purge(cfg.retention_days)
         return stats
     finally:
         store.close()

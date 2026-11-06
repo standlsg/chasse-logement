@@ -1,5 +1,10 @@
 # Architecture — chasse-logement
 
+> Schéma complet (actuel + modules IA proposés) : [docs/schema.md](schema.md) —
+> design des modules IA : [docs/ai-modules.md](ai-modules.md) (IA-1 signaux texte,
+> IA-2 dédup sémantique cross-sources) — build vs buy (agrégateurs type MoteurImmo) :
+> [docs/schema.md](schema.md) §build-vs-buy.
+
 ## 1. Vue d'ensemble
 
 ```
@@ -63,9 +68,14 @@
   flux RSS ajout/suppression + **catalogue régional** appliquable en un clic),
   destinataires email, mode digest/instantané. L'UI écrit `config.yaml` sans jamais
   toucher aux secrets.
+- `sources/api.py` : connecteur **API d'agrégation commerciale** (MoteurImmo & co., contrat
+  payant légal) — générique et configurable (base_url/path/header/items_path), critères envoyés
+  en query params, mapping tolérant des champs JSON.
 - `merge.py` : fusion cross-sources des annonces en `Property` (même bien = une ligne).
 - `redflags.py` : encart « à vérifier » (incohérences entre sources, prix/m² anormal,
-  formulations d'arnaque).
+  formulations d'arnaque) + `ai/assess.py` (**IA-3 Mistral** : risque d'arnaque 0..1 +
+  cohérence cross-sources, texte redacté avant envoi, cache). IA-1 (signaux texte) et IA-2
+  (dédup sémantique) dans `ai/` — voir `docs/ai-modules.md`.
 - `geocoding.py` (GéoPlateforme/IGN), `poi.py` (Overpass/OSM), `routing.py` (OSRM
   free-flow = « hors trafic »), `discover.py` + `sources/catalog.py` (détection de flux
   RSS d'agences + catalogue régional Aix-Marseille).

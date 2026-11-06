@@ -1,0 +1,20 @@
+# Blueprint Render : déploiement en 1 clic depuis le dashboard Render ("New → Blueprint").
+# Plan free, région UE (Frankfurt), build Docker, healthcheck sur /healthz.
+# Les secrets (sync: false) se renseignent dans le dashboard Render après le 1er déploiement.
+services:
+  - type: web
+    name: chasse-logement
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: CL_IMAP_PASSWORD
+        sync: false
+      - key: CL_SMTP_PASSWORD
+        sync: false
+      - key: CL_TELEGRAM_TOKEN
+        sync: false
+      - key: CL_RESEND_API_KEY
+        sync: false

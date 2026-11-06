@@ -39,9 +39,18 @@ CREATE TABLE IF NOT EXISTS route_cache (
     prop_id TEXT PRIMARY KEY,
     payload TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS ai_cache (
+    cache_key TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);
 """
 
-CACHE_KEY_COL = {"geocodes": "query", "poi_cache": "prop_id", "route_cache": "prop_id"}
+CACHE_KEY_COL = {
+    "geocodes": "query",
+    "poi_cache": "prop_id",
+    "route_cache": "prop_id",
+    "ai_cache": "cache_key",
+}
 
 
 class ListingStore:
@@ -186,6 +195,17 @@ class ListingStore:
             (key, payload),
         )
         self._conn.commit()
+
+    def purge(self, days: int) -> dict:
+        """Supprime annonces et biens vus il y a plus de `days` jours (libère du disque)."""
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        cur_listings = self._conn.execute("DELETE FROM listings WHERE first_seen_at < ?", (cutoff,))
+        cur_props = self._conn.execute("DELETE FROM properties WHERE last_seen_at < ?", (cutoff,))
+        self._conn.commit()
+        return {
+            "listings_deleted": cur_listings.rowcount,
+            "properties_deleted": cur_props.rowcount,
+        }
 
     # ---------- stats ----------
 

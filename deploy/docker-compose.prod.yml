@@ -1,0 +1,45 @@
+# Déploiement production : appli + Caddy (HTTPS auto + basic auth).
+# Usage : cp deploy/docker-compose.prod.yml . ; renseigner .env (DOMAIN, BASIC_USER,
+# BASIC_HASH via `caddy hash-password`, secrets CL_*), puis :
+#   docker compose -f docker-compose.prod.yml up -d --build
+services:
+  app:
+    build: .
+    env_file: .env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - data:/app/data
+    command:
+      [
+        "chasse-logement",
+        "serve",
+        "--config",
+        "/app/config.yaml",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+      ]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+      BASIC_USER: ${BASIC_USER:-admin}
+      BASIC_HASH: ${BASIC_HASH:?définir BASIC_HASH dans .env (voir deploy/README.md)}
+    depends_on:
+      - app
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:

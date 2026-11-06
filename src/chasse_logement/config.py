@@ -33,9 +33,17 @@ class RssFeedConfig(BaseModel):
 
 
 class ApiAggregatorConfig(BaseModel):
+    """API d'agrégation commerciale (MoteurImmo, Melo/Stream Estate, Yanport…)."""
+
     enabled: bool = False
     base_url: str = ""
-    api_key: str = ""
+    api_key: str = ""  # CL_API_KEY
+    path: str = "/api/v1/annonces"  # à ajuster selon la doc du fournisseur
+    header_name: str = "X-API-Key"  # ou "Authorization" avec bearer: true
+    bearer: bool = False
+    items_path: str = ""  # ex. "annonces" ; vide = détection auto (annonces/items/results/data)
+    limit: int = 100
+    extra_params: dict[str, str] = Field(default_factory=dict)
 
 
 class SourcesConfig(BaseModel):
@@ -75,16 +83,40 @@ class NotifyTelegramConfig(BaseModel):
     chat_id: str = ""
 
 
+class ResendConfig(BaseModel):
+    """API Resend (HTTPS/443) — fonctionne sur les hébergeurs free qui bloquent le SMTP
+    (Render bloque 25/465/587). 3000 emails/mois gratuits."""
+
+    enabled: bool = False
+    api_key: str = ""  # CL_RESEND_API_KEY
+    from_addr: str = ""  # ex. "alertes@ton-domaine-verifie.resend.dev"
+
+
 class NotifyConfig(BaseModel):
     mode: Literal["digest", "instant"] = "digest"
     email: NotifyEmailConfig = Field(default_factory=NotifyEmailConfig)
     telegram: NotifyTelegramConfig = Field(default_factory=NotifyTelegramConfig)
+    resend: ResendConfig = Field(default_factory=ResendConfig)
 
 
 class ScheduleConfig(BaseModel):
     hour: int = 8
     minute: int = 0
     interval_hours: int = 24
+
+
+class AiConfig(BaseModel):
+    """Modules IA (provider Mistral API). provider=off par défaut (aucun appel externe)."""
+
+    provider: Literal["off", "mistral"] = "off"
+    api_key: str = ""  # CL_MISTRAL_API_KEY
+    model: str = "mistral-small-latest"
+    base_url: str = "https://api.mistral.ai/v1"
+    timeout_s: float = 30.0
+    run_signals: bool = True  # IA-1 : extraction de signaux texte
+    run_dedup: bool = True  # IA-2 : dédup sémantique (paires ambiguës uniquement)
+    run_risk: bool = True  # IA-3 : évaluation risque d'arnaque + cohérence cross-sources
+    max_pairs_per_run: int = 50
 
 
 class CommuteConfig(BaseModel):
@@ -101,6 +133,7 @@ class EnrichmentConfig(BaseModel):
 
 class AppConfig(BaseModel):
     database_path: str = "data/chasse-logement.db"
+    retention_days: int = 90  # purge auto des annonces/biens plus vieux (0 = jamais)
     http: HttpConfig = Field(default_factory=HttpConfig)
     sources: SourcesConfig = Field(default_factory=SourcesConfig)
     criteria: Criteria = Field(default_factory=Criteria)
@@ -108,6 +141,7 @@ class AppConfig(BaseModel):
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
     commute: CommuteConfig = Field(default_factory=CommuteConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    ai: AiConfig = Field(default_factory=AiConfig)
 
 
 class Secrets(BaseSettings):
@@ -119,6 +153,8 @@ class Secrets(BaseSettings):
     smtp_password: str | None = None
     telegram_token: str | None = None
     api_key: str | None = None
+    resend_api_key: str | None = None
+    mistral_api_key: str | None = None
 
 
 def load_config(path: str | Path) -> AppConfig:
@@ -133,4 +169,8 @@ def load_config(path: str | Path) -> AppConfig:
         cfg.notify.telegram.bot_token = secrets.telegram_token
     if secrets.api_key:
         cfg.sources.api.api_key = secrets.api_key
+    if secrets.resend_api_key:
+        cfg.notify.resend.api_key = secrets.resend_api_key
+    if secrets.mistral_api_key:
+        cfg.ai.api_key = secrets.mistral_api_key
     return cfg

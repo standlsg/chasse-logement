@@ -1,6 +1,13 @@
+import httpx
+
+from chasse_logement.config import ResendConfig
 from chasse_logement.matching import MatchResult
 from chasse_logement.merge import build_property
-from chasse_logement.notify import build_digest_html, build_digest_text
+from chasse_logement.notify import (
+    ResendNotifier,
+    build_digest_html,
+    build_digest_text,
+)
 
 
 def test_digest_property_lists_all_source_links(make_listing):
@@ -30,3 +37,25 @@ def test_digest_property_shows_red_flags(make_listing):
     assert "⚠" in build_digest_text([res])
     assert "western union" in build_digest_html([res])
     assert isinstance(prop, Property)
+
+
+def test_resend_notifier_posts_over_https():
+    captured = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        captured["auth"] = request.headers.get("Authorization")
+        captured["body"] = request.read()
+        return httpx.Response(200, json={"id": "email_123"})
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    notifier = ResendNotifier(
+        ResendConfig(enabled=True, api_key="re_xxx", from_addr="alertes@exemple.resend.dev"),
+        ["moi@exemple.fr"],
+        client=client,
+    )
+    notifier.send_digest("[chasse-logement] 1 nouveau bien", [])
+    assert captured["url"] == "https://api.resend.com/emails"
+    assert captured["auth"] == "Bearer re_xxx"
+    assert b"[chasse-logement] 1 nouveau bien" in captured["body"]
+    assert b"moi@exemple.fr" in captured["body"]

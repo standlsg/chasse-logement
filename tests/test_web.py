@@ -58,6 +58,11 @@ def test_index(client):
     assert "annonces vues" in r.text
 
 
+def test_healthz(client):
+    c, _ = client
+    assert c.get("/healthz").json() == {"ok": True}
+
+
 def test_parametres_get(client):
     c, _ = client
     r = c.get("/parametres")

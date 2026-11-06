@@ -296,6 +296,10 @@ def create_app(config_path: str, run_scheduler: bool = True) -> FastAPI:
         run_once(load_config(config_path))
         return RedirectResponse("/", status_code=303)
 
+    @app.get("/healthz")
+    def healthz() -> dict:
+        return {"ok": True}
+
     if run_scheduler:
 
         def _loop() -> None:

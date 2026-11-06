@@ -47,8 +47,12 @@ def same_property(a: Listing, b: Listing) -> bool:
     return title_similarity(a.title, b.title) >= 0.45
 
 
-def cluster(listings: list[Listing]) -> list[list[Listing]]:
-    """Union-find sur les annonces (bucket par code postal pour rester rapide)."""
+def cluster(listings: list[Listing], decider=None) -> list[list[Listing]]:
+    """Union-find sur les annonces (bucket par code postal pour rester rapide).
+
+    decider(a, b) -> bool | None : si fourni et qu'il retourne un bool, il tranche
+    (ex. IA-2) ; None = l'heuristique same_property décide.
+    """
     buckets: dict[str, list[Listing]] = {}
     for lst in listings:
         buckets.setdefault(lst.postcode or "", []).append(lst)
@@ -66,7 +70,16 @@ def cluster(listings: list[Listing]) -> list[list[Listing]]:
     for bucket in buckets.values():
         for i in range(len(bucket)):
             for j in range(i + 1, len(bucket)):
-                if same_property(bucket[i], bucket[j]):
+                if decider is not None:
+                    ai_decision = decider(bucket[i], bucket[j])
+                    same = (
+                        ai_decision
+                        if ai_decision is not None
+                        else same_property(bucket[i], bucket[j])
+                    )
+                else:
+                    same = same_property(bucket[i], bucket[j])
+                if same:
                     union(bucket[i].dedup_key, bucket[j].dedup_key)
     groups: dict[str, list[Listing]] = {}
     for lst in listings:

@@ -2,6 +2,7 @@
 # Copier vers config.yaml, ajuster budget/critères, et mettre les secrets dans .env.
 
 database_path: data/chasse-logement.db
+retention_days: 90 # purge auto (espace disque) ; 0 = garde tout
 
 http:
   user_agent: "chasse-logement/0.1 (+https://github.com/standlsg/chasse-logement)"
@@ -26,9 +27,31 @@ sources:
     # - name: agence-locale
     #   url: https://www.agence-locale.fr/rss.xml
     #   enabled: true
+  # API d'agrégation commerciale — MoteurImmo (compte + clé sur moteurimmo.fr/offre-api,
+  # facturation à l'annonce, freemium). Ajuster path/items_path selon leur doc.
+  api:
+    enabled: true
+    base_url: https://api.moteurimmo.fr
+    api_key: "" # CL_API_KEY
+    path: /api/v1/annonces
+    header_name: X-API-Key
+    items_path: annonces
+    limit: 100
+
+# Modules IA (Mistral) : IA-1 signaux texte, IA-2 dédup sémantique, IA-3 risque d'arnaque.
+# Les textes envoyés à l'API sont d'abord redactés (tél/email/contact des annonceurs).
+ai:
+  provider: mistral # off | mistral
+  api_key: "" # CL_MISTRAL_API_KEY
+  model: mistral-small-latest
+  run_signals: true
+  run_dedup: true
+  run_risk: true
+  max_pairs_per_run: 50
 
 criteria:
-  budget_max: 1200 # loyer + charges — marché Aix/Marseille : studio ~600-750 €, 2P ~850-1100 €
+  budget_max: 2800 # loyer + charges — tes critères : ≤ 2800 €, 4 chambres ou 3 ch. + bureau
+  # (les signaux IA comptent le bureau détecté dans le texte : rooms_effective)
   min_surface_m2: 25
   min_rooms: 1
   # Métropole Aix-Marseille-Provence (Marseille 13001-13016, Aix 13080/13090/13100/13290, etc.)

@@ -6,7 +6,7 @@ from typing import Protocol
 
 import httpx
 
-from .config import NotifyConfig, NotifyEmailConfig, NotifyTelegramConfig
+from .config import NotifyConfig, NotifyEmailConfig, NotifyTelegramConfig, ResendConfig
 from .matching import MatchResult
 from .models import Listing, Property
 
@@ -114,6 +114,38 @@ class TelegramNotifier:
         ).raise_for_status()
 
 
+class ResendNotifier:
+    """Emails via l'API Resend (HTTPS, port 443) — compatible hébergeurs free type Render
+    qui bloquent les ports SMTP 25/465/587. Destinataires : notify.email.to_addrs."""
+
+    API_URL = "https://api.resend.com/emails"
+
+    def __init__(
+        self,
+        cfg: ResendConfig,
+        to_addrs: list[str],
+        client: httpx.Client | None = None,
+    ) -> None:
+        self.cfg = cfg
+        self.to_addrs = to_addrs
+        self._client = client or httpx.Client(timeout=30.0)
+
+    def send_digest(self, subject: str, results: list[MatchResult]) -> None:
+        payload = {
+            "from": self.cfg.from_addr,
+            "to": self.to_addrs,
+            "subject": subject,
+            "text": build_digest_text(results),
+            "html": build_digest_html(results),
+        }
+        resp = self._client.post(
+            self.API_URL,
+            json=payload,
+            headers={"Authorization": f"Bearer {self.cfg.api_key}"},
+        )
+        resp.raise_for_status()
+
+
 class CompositeNotifier:
     def __init__(self, notifiers: list[Notifier]) -> None:
         self.notifiers = notifiers
@@ -129,6 +161,8 @@ def build_notifier(cfg: NotifyConfig) -> Notifier | None:
         notifiers.append(EmailNotifier(cfg.email))
     if cfg.telegram.enabled:
         notifiers.append(TelegramNotifier(cfg.telegram))
+    if cfg.resend.enabled:
+        notifiers.append(ResendNotifier(cfg.resend, cfg.email.to_addrs))
     if not notifiers:
         return None
     if len(notifiers) == 1:
