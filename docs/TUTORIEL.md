@@ -158,6 +158,8 @@ config, ou on l'ajoute dans l'UI à la prochaine itération.
 | 0 annonce (portails) | alerte e-mail pas activée sur le portail | Étape 2 : vérifier « Mes recherches » → notif e-mail ON |
 | Pas d'e-mail de résultats | `from_addr` non vérifié sur Resend, ou spam | Étape 3 : domaine « Valid », ou test avec `onboarding@resend.dev` vers ton adresse |
 | L'UI affiche une erreur 500 | bug | Copie le message d'erreur des logs Clever Cloud et dis-le moi |
+| Gmail bloque : « Impossible de valider votre identité » lors de la création du mot de passe d'application | Anti-fraude Google sur compte neuf : attendre 24-72 h d'usage normal depuis appareil/Wi-Fi habituels + renseigner téléphone/e-mail de récupération. **Contournement recommandé** : créer la boîte dédiée chez **Outlook.com** (`imap-mail.outlook.com:993`, IMAP ON par défaut) ou **Zoho Mail** (`imap.zoho.eu:993`) plutôt que Gmail — l'UI « Comptes & envoi » permet de changer hôte/port/adresse. |
+| Gmail : pas de bouton « Activer l'accès IMAP » | Normal depuis janv. 2025 : IMAP toujours ON sur les comptes perso `@gmail.com` — rien à activer. Il faut juste 2FA + mot de passe d'application. | myaccount.google.com → Sécurité → Mots de passe d'application |
 
 ---
 
