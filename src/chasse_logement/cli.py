@@ -55,8 +55,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "purge":
         from .store import ListingStore
 
-        cfg = load_config(args.config)
-        days = args.days if args.days is not None else cfg.retention_days
+        days = args.days if args.days is not None else load_config(args.config).retention_days
         store = ListingStore(cfg.database_path)
         try:
             print(json.dumps(store.purge(days), indent=2))
@@ -64,7 +63,15 @@ def main(argv: list[str] | None = None) -> int:
             store.close()
         return 0
 
-    cfg = load_config(args.config)
+    try:
+        cfg = load_config(args.config)
+    except FileNotFoundError:
+        print(
+            f"erreur : fichier de configuration introuvable : {args.config}\n"
+            "→ cp regions/aix-marseille.example.yaml config.yaml  (ou config.example.yaml)",
+            file=sys.stderr,
+        )
+        return 2
 
     if args.command == "run":
         stats = run_once(cfg)
