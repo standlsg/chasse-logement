@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from .ai.assess import assess_property
 from .ai.dedup import make_ai_decider
 from .ai.signals import MistralClient, extract_signals
 from .config import AppConfig
@@ -10,6 +11,7 @@ from .merge import build_property, cluster
 from .models import Listing, Property
 from .notify import Notifier, build_notifier
 from .redflags import red_flags
+from .sources.api import ApiAggregatorSource
 from .sources.base import Source
 from .sources.imap_alerts import ImapAlertsSource
 from .sources.rss import RssSource
@@ -35,6 +37,8 @@ def build_sources(cfg: AppConfig, client: PoliteClient) -> list[Source]:
         if not feed.enabled:
             continue
         sources.append(RssSource(feed.name, feed.url, client=client))
+    if cfg.sources.api.enabled:
+        sources.append(ApiAggregatorSource(cfg.sources.api, cfg.criteria))
     return sources
 
 
@@ -119,6 +123,23 @@ def run_once(
                     prop.signals = extract_signals(
                         f"{prop.title}\n{prop.description}", cfg.ai, client=ai_client, cache=store
                     ).model_dump()
+                if is_new and ai_client is not None and cfg.ai.run_risk:
+                    sources_summary = " ; ".join(
+                        f"{s.source_id}: prix={s.price}, surface={s.surface_m2}, pièces={s.rooms}"
+                        for s in prop.sources
+                    )
+                    risk = assess_property(
+                        f"{prop.title}\n{prop.description}",
+                        sources_summary,
+                        cfg.ai,
+                        ai_client,
+                        cache=store,
+                    )
+                    if risk.scam_risk >= 0.5:
+                        prop.red_flags.extend(
+                            [f"IA: {r}" for r in risk.reasons]
+                            or [f"IA: risque d'arnaque évalué à {risk.scam_risk:.0%}"]
+                        )
                 if is_new:
                     res = evaluate(prop, cfg.criteria, pool)
                     if res is not None:

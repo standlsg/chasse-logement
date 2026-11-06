@@ -46,7 +46,9 @@ def make_cfg(tmp_path, min_rooms=4) -> AppConfig:
         notify=NotifyConfig(email=NotifyEmailConfig(enabled=False)),
         enrichment=EnrichmentConfig(geocode=False, poi=False),
         commute=CommuteConfig(enabled=False),
-        ai=AiConfig(provider="mistral", api_key="k", run_signals=True, run_dedup=False),
+        ai=AiConfig(
+            provider="mistral", api_key="k", run_signals=True, run_dedup=False, run_risk=False
+        ),
     )
 
 

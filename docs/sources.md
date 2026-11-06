@@ -11,7 +11,8 @@ juridique. Voir `docs/conformite.md` (grille d'entrée) avant toute évolution.
 | Bien'ici | idem | idem | CGU 2026-11 |
 | Logic-Immo | idem | idem | CGU 2026-11 |
 | Agences (par zone) | flux RSS publiés volontairement | contenu public prévu pour diffusion | robots.txt + flux 2026-11 |
-| (V1) Agrégateur API (Melo/Stream Estate, MoteurImmo...) | API sous contrat payant | contrat commercial | à signer |
+| **MoteurImmo** (connecteur `sources/api.py`, config `sources.api`) | API REST sous contrat (freemium, pay-per-listing ; compte + clé sur moteurimmo.fr/offre-api) | contrat commercial | 2026-11 |
+| Melo/Stream Estate, Yanport (alternatives) | idem | contrat commercial | à signer |
 | (V1) Open data marché : Carte des loyers ANIL, OLL, DVF+ (data.gouv.fr) | téléchargement/API ouvertes | open data État (licence ouverte) | 2026-11 |
 | (V1) Géocodage GéoPlateforme + API Géo | API publiques gratuites | service public (api.gouv.fr) | 2026-11 |
 | POI écoles/commerces/transports | Overpass / OpenStreetMap | données OSM, licence ODbL (attribution © OpenStreetMap) | 2026-11 |

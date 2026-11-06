@@ -1,9 +1,13 @@
 # Modules IA — implémentés (provider Mistral API)
 
 ✅ Implémentés sur `preprod` : `src/chasse_logement/ai/` (`redact.py`, `signals.py`,
-`dedup.py`), config `ai:` (provider `off` par défaut), cache `ai_cache`, UI (encart
-« 🤖 Signaux IA » dans /biens), tests mockés. Branchement pipeline : IA-1 sur les nouveaux
-biens, IA-2 via `decider` sur les paires ambiguës uniquement.
+`dedup.py`, `assess.py`), config `ai:` (provider `off` par défaut), cache `ai_cache`, UI
+(encart « 🤖 Signaux IA » dans /biens), tests mockés. Branchement pipeline : IA-1 sur les
+nouveaux biens, IA-2 via `decider` sur les paires ambiguës uniquement, **IA-3** (`assess.py`) :
+risque d'arnaque 0..1 + cohérence cross-sources → red flags « IA: … ».
+
+✅ Connecteur **API MoteurImmo** : `src/chasse_logement/sources/api.py` (config
+`sources.api`, générique/configurable), branché comme source dans le pipeline.
 
 Deux modules, plug-ins du pipeline existant (voir `docs/schema.md`). Point commun :
 **jamais de données personnelles d'annonceurs envoyées telles quelles** — les textes sont

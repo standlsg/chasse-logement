@@ -33,9 +33,17 @@ class RssFeedConfig(BaseModel):
 
 
 class ApiAggregatorConfig(BaseModel):
+    """API d'agrégation commerciale (MoteurImmo, Melo/Stream Estate, Yanport…)."""
+
     enabled: bool = False
     base_url: str = ""
-    api_key: str = ""
+    api_key: str = ""  # CL_API_KEY
+    path: str = "/api/v1/annonces"  # à ajuster selon la doc du fournisseur
+    header_name: str = "X-API-Key"  # ou "Authorization" avec bearer: true
+    bearer: bool = False
+    items_path: str = ""  # ex. "annonces" ; vide = détection auto (annonces/items/results/data)
+    limit: int = 100
+    extra_params: dict[str, str] = Field(default_factory=dict)
 
 
 class SourcesConfig(BaseModel):
@@ -107,6 +115,7 @@ class AiConfig(BaseModel):
     timeout_s: float = 30.0
     run_signals: bool = True  # IA-1 : extraction de signaux texte
     run_dedup: bool = True  # IA-2 : dédup sémantique (paires ambiguës uniquement)
+    run_risk: bool = True  # IA-3 : évaluation risque d'arnaque + cohérence cross-sources
     max_pairs_per_run: int = 50
 
 
