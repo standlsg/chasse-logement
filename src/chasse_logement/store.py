@@ -39,9 +39,18 @@ CREATE TABLE IF NOT EXISTS route_cache (
     prop_id TEXT PRIMARY KEY,
     payload TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS ai_cache (
+    cache_key TEXT PRIMARY KEY,
+    payload TEXT NOT NULL
+);
 """
 
-CACHE_KEY_COL = {"geocodes": "query", "poi_cache": "prop_id", "route_cache": "prop_id"}
+CACHE_KEY_COL = {
+    "geocodes": "query",
+    "poi_cache": "prop_id",
+    "route_cache": "prop_id",
+    "ai_cache": "cache_key",
+}
 
 
 class ListingStore:

@@ -97,6 +97,19 @@ class ScheduleConfig(BaseModel):
     interval_hours: int = 24
 
 
+class AiConfig(BaseModel):
+    """Modules IA (provider Mistral API). provider=off par défaut (aucun appel externe)."""
+
+    provider: Literal["off", "mistral"] = "off"
+    api_key: str = ""  # CL_MISTRAL_API_KEY
+    model: str = "mistral-small-latest"
+    base_url: str = "https://api.mistral.ai/v1"
+    timeout_s: float = 30.0
+    run_signals: bool = True  # IA-1 : extraction de signaux texte
+    run_dedup: bool = True  # IA-2 : dédup sémantique (paires ambiguës uniquement)
+    max_pairs_per_run: int = 50
+
+
 class CommuteConfig(BaseModel):
     enabled: bool = False
     destination_label: str = "Salesforce Marseille"
@@ -119,6 +132,7 @@ class AppConfig(BaseModel):
     schedule: ScheduleConfig = Field(default_factory=ScheduleConfig)
     commute: CommuteConfig = Field(default_factory=CommuteConfig)
     enrichment: EnrichmentConfig = Field(default_factory=EnrichmentConfig)
+    ai: AiConfig = Field(default_factory=AiConfig)
 
 
 class Secrets(BaseSettings):
@@ -131,6 +145,7 @@ class Secrets(BaseSettings):
     telegram_token: str | None = None
     api_key: str | None = None
     resend_api_key: str | None = None
+    mistral_api_key: str | None = None
 
 
 def load_config(path: str | Path) -> AppConfig:
@@ -147,4 +162,6 @@ def load_config(path: str | Path) -> AppConfig:
         cfg.sources.api.api_key = secrets.api_key
     if secrets.resend_api_key:
         cfg.notify.resend.api_key = secrets.resend_api_key
+    if secrets.mistral_api_key:
+        cfg.ai.api_key = secrets.mistral_api_key
     return cfg

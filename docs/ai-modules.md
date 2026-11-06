@@ -1,4 +1,9 @@
-# Modules IA proposés
+# Modules IA — implémentés (provider Mistral API)
+
+✅ Implémentés sur `preprod` : `src/chasse_logement/ai/` (`redact.py`, `signals.py`,
+`dedup.py`), config `ai:` (provider `off` par défaut), cache `ai_cache`, UI (encart
+« 🤖 Signaux IA » dans /biens), tests mockés. Branchement pipeline : IA-1 sur les nouveaux
+biens, IA-2 via `decider` sur les paires ambiguës uniquement.
 
 Deux modules, plug-ins du pipeline existant (voir `docs/schema.md`). Point commun :
 **jamais de données personnelles d'annonceurs envoyées telles quelles** — les textes sont
@@ -70,12 +75,23 @@ ai:
   run_dedup: true          # IA-2 (paires ambiguës uniquement)
 ```
 
-## Plan d'implémentation (prochaine itération)
+## Activation
 
-1. `ai/redact.py` + tests (PII masqués).
-2. `ai/signals.py` : provider mistral (httpx) + ollama + off ; schéma JSON pydantic
-   `Signals` ; tests avec réponses mockées.
-3. `ai/dedup.py` : comparaison de paires ; tests mockés.
-4. Branchement pipeline : `Property.signals`, `rooms_effective`, score bonus.
-5. UI : encart « Signaux IA » dans le détail d'un bien (avec evidence).
-6. Config `ai:` + secrets `CL_MISTRAL_API_KEY`.
+```yaml
+ai:
+  provider: mistral        # off | mistral
+  model: mistral-small-latest
+  run_signals: true
+  run_dedup: true
+  max_pairs_per_run: 50
+```
+
+Secret : `CL_MISTRAL_API_KEY` (console Mistral → API keys). Coût indicatif :
+`mistral-small-latest` ~0,20 €/M tokens → quelques centimes par tournée pour ~50
+nouveaux biens (cache `ai_cache` inclus).
+
+## Évolution prévue
+
+- provider `ollama` (modèle local sur le VPS, zéro fuite) en V2 — l'abstraction
+  `MistralClient.complete_json` est prête à être complétée.
+- score bonus pour jardin/terrasse/parking détectés par IA-1.

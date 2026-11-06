@@ -29,8 +29,11 @@ def matches(item: Listing | Property, criteria: Criteria) -> tuple[bool, list[st
             f"< {criteria.min_surface_m2:.0f} m²)"
         )
 
-    if criteria.min_rooms and (item.rooms or 0) < criteria.min_rooms:
-        failed.append(f"pièces insuffisantes ({item.rooms or 0} < {criteria.min_rooms})")
+    rooms = getattr(item, "rooms_effective", None)
+    if rooms is None:
+        rooms = item.rooms or 0
+    if criteria.min_rooms and rooms < criteria.min_rooms:
+        failed.append(f"pièces insuffisantes ({rooms} < {criteria.min_rooms})")
 
     if criteria.postcodes:
         if item.postcode not in criteria.postcodes:

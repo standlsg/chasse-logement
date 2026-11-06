@@ -70,6 +70,20 @@
         {% else %}
         <div class="ok">✅ Aucun red flag détecté.</div>
         {% endif %}
+        {% if p.signals %}
+        <div class="box"><b>🤖 Signaux IA (texte de l'annonce)</b>
+          <ul>
+            {% if p.signals.has_office is not none %}<li>Bureau : {% if p.signals.has_office %}oui{% if p.signals.office_location %} ({{ p.signals.office_location }}){% endif %}{% else %}non mentionné/détecté{% endif %} → pièces effectives : {{ p.rooms_effective }}</li>{% endif %}
+            {% if p.signals.has_garden %}<li>Jardin : oui{% if p.signals.garden_m2 %} ({{ p.signals.garden_m2|int }} m²){% endif %}</li>{% endif %}
+            {% if p.signals.terrace_m2 %}<li>Terrasse : {{ p.signals.terrace_m2|int }} m²</li>{% endif %}
+            {% if p.signals.parking_places %}<li>Parking : {{ p.signals.parking_places }} place(s)</li>{% endif %}
+            {% if p.signals.furnished is not none %}<li>Meublé : {{ 'oui' if p.signals.furnished else 'non' }}</li>{% endif %}
+            {% if p.signals.available_from %}<li>Disponible : {{ p.signals.available_from }}</li>{% endif %}
+            {% if p.signals.dpe %}<li>DPE : {{ p.signals.dpe }}</li>{% endif %}
+          </ul>
+          {% if p.signals.evidence %}<p class="muted">Extraits : {% for e in p.signals.evidence %}« {{ e }} »{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+        </div>
+        {% endif %}
         <div class="box"><b>Adresse estimée</b> :
           {% if p.address_label %}
             {{ p.address_label }} <span class="muted">(précision : {{ p.address_precision }}, score géocodage)</span>

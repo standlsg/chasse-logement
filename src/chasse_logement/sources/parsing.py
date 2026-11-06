@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 
-PRICE_RE = re.compile(r"(\d[\d\s ]*)\s*€", re.IGNORECASE)
+PRICE_RE = re.compile(r"(\d[\d\s\u00a0]*(?:[.,]\d+)?)\s*€", re.IGNORECASE)
 SURFACE_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*m[²2]", re.IGNORECASE)
 ROOMS_PIECES_RE = re.compile(r"(\d+)\s*pi[èe]ces", re.IGNORECASE)
 ROOMS_TF_RE = re.compile(r"\b[TF](\d+)\b")

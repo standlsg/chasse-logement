@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from .ai.dedup import make_ai_decider
+from .ai.signals import MistralClient, extract_signals
 from .config import AppConfig
 from .geocoding import Geocoder, address_query
 from .http import PoliteClient
@@ -36,9 +38,12 @@ def build_sources(cfg: AppConfig, client: PoliteClient) -> list[Source]:
     return sources
 
 
-def rebuild_properties(store: ListingStore) -> list[Property]:
-    """Reclusterise toutes les annonces en biens (Property) fusionnés cross-sources."""
-    return [build_property(group) for group in cluster(store.all_listings())]
+def rebuild_properties(store: ListingStore, decider=None) -> list[Property]:
+    """Reclusterise toutes les annonces en biens (Property) fusionnés cross-sources.
+
+    decider = IA-2 optionnelle (décide des paires ambiguës ; None = heuristique seule).
+    """
+    return [build_property(group) for group in cluster(store.all_listings(), decider=decider)]
 
 
 def run_once(
@@ -85,7 +90,13 @@ def run_once(
             except Exception as exc:  # noqa: BLE001 - une source en panne ne bloque pas la tournée
                 stats.setdefault("source_errors", {})[src.name] = str(exc)
         if fresh:
-            props = rebuild_properties(store)
+            ai_client = MistralClient(cfg.ai) if cfg.ai.provider != "off" else None
+            decider = (
+                make_ai_decider(cfg.ai, ai_client, cache=store, max_pairs=cfg.ai.max_pairs_per_run)
+                if (ai_client is not None and cfg.ai.run_dedup)
+                else None
+            )
+            props = rebuild_properties(store, decider=decider)
             stats["properties"] = len(props)
             pool = store.recent_pool(days=30)
             pool_ppm = [lst.price_per_m2 for lst in pool if lst.price_per_m2]
@@ -104,6 +115,10 @@ def run_once(
                         prop.longitude = geo.longitude
                         prop.address_label = geo.label
                         prop.address_precision = geo.precision
+                if is_new and ai_client is not None and cfg.ai.run_signals:
+                    prop.signals = extract_signals(
+                        f"{prop.title}\n{prop.description}", cfg.ai, client=ai_client, cache=store
+                    ).model_dump()
                 if is_new:
                     res = evaluate(prop, cfg.criteria, pool)
                     if res is not None:

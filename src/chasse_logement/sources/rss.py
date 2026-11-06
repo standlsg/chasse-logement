@@ -35,7 +35,7 @@ def listing_from_entry(entry: Any, source_id: str, feed_name: str) -> Listing:
     return Listing(
         source_id=source_id,
         source_kind=SourceKind.RSS,
-        external_id=str(entry.get("id") or link),
+        external_id=str(entry.get("id") or link or entry.get("title", "")),
         url=link,
         title=title,
         price=extract_price(text),

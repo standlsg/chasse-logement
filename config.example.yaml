@@ -85,6 +85,16 @@ commute:
   # adresse postale exacte de destination (géocodée ; OSRM donne le temps hors trafic)
   destination_address: ""
 
+# Modules IA (provider Mistral API). off = aucun appel externe (défaut).
+# Les textes envoyés à l'API sont d'abord redactés (tél/email/contact des annonceurs).
+ai:
+  provider: off # off | mistral
+  api_key: "" # CL_MISTRAL_API_KEY
+  model: mistral-small-latest
+  run_signals: true # IA-1 : signaux texte (bureau à la cave, jardin, parking…)
+  run_dedup: true # IA-2 : dédup sémantique cross-sources (paires ambiguës)
+  max_pairs_per_run: 50
+
 schedule:
   hour: 8
   minute: 0
